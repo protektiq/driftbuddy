@@ -1,3 +1,14 @@
+# Core dependencies
 openai>=1.0.0
 python-dotenv>=1.0.0
 markdown>=3.4.0
+
+# Optional but recommended for better functionality
+requests>=2.31.0
+colorama>=0.4.6
+rich>=13.0.0
+
+# Development dependencies (optional)
+pytest>=7.0.0
+black>=23.0.0
+flake8>=6.0.0

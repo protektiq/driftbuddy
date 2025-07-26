@@ -1,0 +1,136 @@
+name: DriftBuddy Security Scan
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - '**/*.tf'
+      - '**/*.yaml'
+      - '**/*.yml'
+      - '**/*.json'
+      - '**/*.bicep'
+      - '**/*.dockerfile'
+      - '**/Dockerfile'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - '**/*.tf'
+      - '**/*.yaml'
+      - '**/*.yml'
+      - '**/*.json'
+      - '**/*.bicep'
+      - '**/*.dockerfile'
+      - '**/Dockerfile'
+  workflow_dispatch:
+    inputs:
+      scan_path:
+        description: 'Path to scan (default: .)'
+        required: false
+        default: '.'
+      report_format:
+        description: 'Report format'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - html
+          - md
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install KICS
+      run: |
+        curl -L https://github.com/Checkmarx/kics/releases/latest/download/kics_linux_amd64.tar.gz -o kics.tar.gz
+        tar -xzf kics.tar.gz
+        sudo mv kics /usr/local/bin/
+        sudo chmod +x /usr/local/bin/kics
+        rm kics.tar.gz
+        
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Set up OpenAI API Key
+      run: |
+        echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> $GITHUB_ENV
+        
+    - name: Run DriftBuddy Security Scan
+      run: |
+        python driftbuddy.py "${{ github.event.inputs.scan_path || '.' }}" --all --reports-dir ./security-reports
+        
+    - name: Upload Security Reports
+      uses: actions/upload-artifact@v4
+      with:
+        name: driftbuddy-security-reports
+        path: security-reports/
+        retention-days: 30
+        
+    - name: Comment on PR with findings summary
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const path = require('path');
+          
+          // Check if reports were generated
+          const reportsDir = './security-reports';
+          if (!fs.existsSync(reportsDir)) {
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '✅ **DriftBuddy Security Scan Complete**\n\nNo security issues found! Your infrastructure appears to follow security best practices. 🛡️'
+            });
+            return;
+          }
+          
+          // Read the latest markdown report
+          const files = fs.readdirSync(reportsDir);
+          const mdFiles = files.filter(f => f.endsWith('.md')).sort().reverse();
+          
+          if (mdFiles.length > 0) {
+            const latestReport = fs.readFileSync(path.join(reportsDir, mdFiles[0]), 'utf8');
+            
+            // Extract summary information
+            const summaryMatch = latestReport.match(/## 📊 Summary\n\*\*Total Findings:\*\* (\d+)/);
+            const totalFindings = summaryMatch ? summaryMatch[1] : '0';
+            
+            let comment = `🔍 **DriftBuddy Security Scan Results**\n\n`;
+            comment += `**Total Findings:** ${totalFindings}\n\n`;
+            
+            if (totalFindings === '0') {
+              comment += '✅ **No security issues found!** Your infrastructure appears to follow security best practices. 🛡️\n\n';
+            } else {
+              comment += '⚠️ **Security issues detected!** Please review the detailed reports.\n\n';
+            }
+            
+            comment += `📊 **Reports Generated:**\n`;
+            comment += `- HTML Dashboard: Available in artifacts\n`;
+            comment += `- Markdown Report: Available in artifacts\n\n`;
+            comment += `💡 **Next Steps:**\n`;
+            comment += `1. Download the security reports from the artifacts\n`;
+            comment += `2. Review and address any security findings\n`;
+            comment += `3. Re-run the scan after fixes to verify resolution\n\n`;
+            comment += `🔗 **View Reports:** Check the "driftbuddy-security-reports" artifacts in this workflow run.`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+          } 

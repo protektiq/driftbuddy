@@ -1,257 +1,374 @@
-# 🛡️ DriftBuddy
+# 🛡️ DriftBuddy - AI-Powered Infrastructure Security Scanner
 
-**AI-Powered Infrastructure Security Scanner with Intelligent Explanations**
-
-DriftBuddy is a powerful security tool that combines [KICS](https://kics.io/) (Keeping Infrastructure as Code Secure) with AI-powered explanations to help developers identify and fix security misconfigurations in their Infrastructure as Code (IaC).
+DriftBuddy is an intelligent security scanner that combines the power of KICS (Keeping Infrastructure as Code Secure) with OpenAI's GPT-4 to provide comprehensive, AI-enhanced security analysis for your Infrastructure as Code (IaC) files.
 
 ## ✨ Features
 
-### 🔍 **Comprehensive Security Scanning**
-- **Multi-format Support**: Scan Terraform, CloudFormation, Kubernetes, Docker, and more
-- **500+ Security Rules**: Built on KICS's extensive security rule library
-- **Real-time Analysis**: Instant feedback on security vulnerabilities
-
-### 🤖 **AI-Powered Explanations**
-- **Intelligent Context**: AI explains each finding in plain English
-- **Actionable Fixes**: Provides secure code examples for each issue
-- **Learning Resource**: Links to official documentation for deeper understanding
-
-### 📊 **Beautiful Reporting**
-- **HTML Dashboard**: Modern, interactive dashboard with severity-based grouping
-- **Markdown Reports**: Clean, structured reports for documentation
-- **Multiple Formats**: Generate HTML, Markdown, or both simultaneously
-
-### 🎯 **Developer-Friendly CLI**
-- **Simple Commands**: Easy-to-use command line interface
-- **Flexible Output**: Choose your preferred report format
-- **Progress Feedback**: Clear status updates during scanning
+- **🔍 Comprehensive Scanning**: Supports Terraform, AWS CloudFormation, Kubernetes, Docker, Azure Bicep, and more
+- **🤖 AI-Powered Explanations**: Uses OpenAI GPT-4 to provide detailed, actionable explanations for each security finding
+- **📊 Beautiful Reports**: Generates both HTML dashboards and markdown reports with timestamped filenames
+- **🔄 CI/CD Integration**: Ready-to-use GitHub Actions workflows for automated security scanning
+- **🎯 Smart Filtering**: Focuses on relevant file types and provides intelligent path-based scanning
+- **🛡️ Graceful Error Handling**: Robust error handling for missing dependencies, API issues, and invalid files
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
-1. **Python 3.8+**
-2. **KICS** - Download from [kics.io](https://kics.io/)
-3. **OpenAI API Key** - Get from [OpenAI Platform](https://platform.openai.com/)
+1. **Python 3.8+** installed on your system
+2. **KICS** - Download from [kics.io](https://kics.io/) or use Docker
+3. **OpenAI API Key** - Get one from [OpenAI Platform](https://platform.openai.com/)
 
 ### Installation
 
-1. **Clone the repository**
+1. **Clone or download DriftBuddy**:
    ```bash
-   git clone https://github.com/yourusername/driftbuddy.git
+   git clone <repository-url>
    cd driftbuddy
    ```
 
-2. **Install Python dependencies**
+2. **Install Python dependencies**:
    ```bash
    pip install -r requirements.txt
    ```
 
-3. **Set up your OpenAI API key**
+3. **Set up your OpenAI API key**:
    ```bash
-   # Create .env file
-   echo "OPENAI_API_KEY=your_api_key_here" > .env
+   export OPENAI_API_KEY="your-api-key-here"
+   # Or create a .env file:
+   echo "OPENAI_API_KEY=your-api-key-here" > .env
    ```
 
-4. **Download KICS** (if not already installed)
+4. **Install KICS** (choose one method):
    ```bash
-   # For Windows
-   curl -L https://github.com/Checkmarx/kics/releases/latest/download/kics_windows_amd64.exe -o kics.exe
+   # Method 1: Download binary
+   curl -L https://github.com/Checkmarx/kics/releases/latest/download/kics_linux_amd64.tar.gz -o kics.tar.gz
+   tar -xzf kics.tar.gz
+   sudo mv kics /usr/local/bin/
    
-   # For macOS
-   curl -L https://github.com/Checkmarx/kics/releases/latest/download/kics_darwin_amd64 -o kics
-   chmod +x kics
-   
-   # For Linux
-   curl -L https://github.com/Checkmarx/kics/releases/latest/download/kics_linux_amd64 -o kics
-   chmod +x kics
+   # Method 2: Use Docker
+   docker pull checkmarx/kics:latest
    ```
 
-## 📖 Usage
-
-### Basic Scanning
+### Basic Usage
 
 ```bash
-# Scan a directory (generates markdown report by default)
-python driftbuddy.py ./terraform-code
+# Scan a directory
+python driftbuddy.py ./terraform-code --all
 
-# Scan with HTML dashboard
-python driftbuddy.py ./terraform-code --html
+# Scan a specific file
+python driftbuddy.py ./main.tf --html
 
-# Generate enhanced markdown report
+# Generate only markdown report
 python driftbuddy.py ./terraform-code --md
 
-# Generate both HTML and markdown reports
-python driftbuddy.py ./terraform-code --all
+# Save reports to custom directory
+python driftbuddy.py ./terraform-code --all --reports-dir ./security-reports
 ```
 
-### Advanced Options
+## 🔄 GitHub Actions Integration
 
-```bash
-# Custom output directory for KICS results
-python driftbuddy.py ./terraform-code --html --output-dir ./my-results
+DriftBuddy includes ready-to-use GitHub Actions workflows for automated security scanning in your CI/CD pipeline.
 
-# Show version information
-python driftbuddy.py --version
+### Quick Setup
 
-# Show help
-python driftbuddy.py --help
+1. **Run the setup script** (if you have DriftBuddy in your repository):
+   ```bash
+   bash scripts/setup-github-actions.sh
+   ```
+
+2. **Add your OpenAI API key to GitHub Secrets**:
+   - Go to your repository → Settings → Secrets and variables → Actions
+   - Click "New repository secret"
+   - Name: `OPENAI_API_KEY`
+   - Value: Your OpenAI API key
+
+3. **Commit and push the changes**:
+   ```bash
+   git add .github/workflows/ requirements.txt
+   git commit -m "Add DriftBuddy GitHub Actions workflows"
+   git push
+   ```
+
+### Available Workflows
+
+#### 1. Basic Workflow (`.github/workflows/driftbuddy-basic.yml`)
+- **Triggers**: Push to main, Pull requests to main, Manual dispatch
+- **Features**: Simple scanning of entire repository
+- **Output**: Uploads security reports as artifacts
+
+#### 2. Advanced Workflow (`.github/workflows/driftbuddy-scan.yml`)
+- **Triggers**: Push/PR with IaC file changes, Manual dispatch with options
+- **Features**: 
+  - Path-based triggering (only runs when IaC files change)
+  - PR comments with findings summary
+  - Configurable scan paths and report formats
+  - Detailed artifact uploads
+
+### Manual Workflow Dispatch
+
+You can manually trigger scans with custom parameters:
+
+1. Go to your repository → Actions
+2. Select "DriftBuddy Security Scan"
+3. Click "Run workflow"
+4. Configure:
+   - **scan_path**: Directory to scan (default: `.`)
+   - **report_format**: `all`, `html`, or `md`
+
+### Workflow Features
+
+#### Automatic PR Comments
+When security issues are found in pull requests, the workflow automatically comments with:
+- Summary of findings
+- Links to detailed reports
+- Actionable next steps
+
+#### Smart Path Filtering
+The advanced workflow only runs when relevant files change:
+- `**/*.tf` (Terraform)
+- `**/*.yaml`, `**/*.yml` (Kubernetes, CloudFormation)
+- `**/*.json` (CloudFormation, ARM templates)
+- `**/*.bicep` (Azure Bicep)
+- `**/*.dockerfile`, `**/Dockerfile` (Docker)
+
+#### Artifact Management
+- Reports are uploaded as GitHub artifacts
+- 30-day retention period
+- Easy download and review
+
+### Customizing Workflows
+
+#### Modify Scan Paths
+Edit `.github/workflows/driftbuddy-scan.yml`:
+```yaml
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - '**/*.tf'          # Add your file patterns
+      - '**/*.yaml'
+      - '**/terraform/**'   # Custom directories
 ```
 
-### Command Line Options
+#### Change Report Formats
+Modify the scan command:
+```yaml
+- name: Run DriftBuddy Security Scan
+  run: |
+    python driftbuddy.py . --html --reports-dir ./security-reports
+```
 
-| Flag | Description | Example |
-|------|-------------|---------|
-| `--html` | Generate beautiful HTML dashboard | `--html` |
-| `--md` | Generate enhanced markdown report | `--md` |
-| `--all` | Generate both HTML and markdown | `--all` |
-| `--output-dir` | Custom output directory | `--output-dir ./results` |
-| `--version` | Show version information | `--version` |
-| `--help` | Show help and examples | `--help` |
+#### Add Custom Branches
+```yaml
+on:
+  push:
+    branches: [ main, develop, feature/* ]
+  pull_request:
+    branches: [ main, develop ]
+```
+
+### Example Workflow Output
+
+```
+🔍 DriftBuddy Security Scan Results
+
+Total Findings: 5
+
+⚠️ Security issues detected! Please review the detailed reports.
+
+📊 Reports Generated:
+- HTML Dashboard: Available in artifacts
+- Markdown Report: Available in artifacts
+
+💡 Next Steps:
+1. Download the security reports from the artifacts
+2. Review and address any security findings
+3. Re-run the scan after fixes to verify resolution
+
+🔗 View Reports: Check the "driftbuddy-security-reports" artifacts in this workflow run.
+```
 
 ## 📊 Report Formats
 
 ### HTML Dashboard
-- **Modern Design**: Beautiful gradient background with card-based layout
-- **Severity Grouping**: Findings organized by CRITICAL, HIGH, MEDIUM, LOW, INFO
-- **Interactive Elements**: Hover effects, smooth animations, and responsive design
-- **Sticky Navigation**: Table of contents for easy browsing
-- **Color-Coded Badges**: Red (Critical), Orange (High), Blue (Medium), Green (Low)
+- **File**: `driftbuddy_security_dashboard_YYYYMMDD_HHMMSS.html`
+- **Features**: 
+  - Interactive dashboard with severity grouping
+  - Color-coded severity badges
+  - Sticky table of contents
+  - Responsive design
+  - Summary cards with findings counts
 
 ### Markdown Report
-- **Structured Format**: Clean, readable markdown with proper headings
-- **Severity Organization**: Findings grouped by security level
-- **AI Explanations**: Detailed explanations and fixes for each finding
-- **Documentation Links**: Direct links to official documentation
-- **Summary Statistics**: Overview of findings by severity
+- **File**: `driftbuddy_security_report_YYYYMMDD_HHMMSS.md`
+- **Features**:
+  - Detailed findings grouped by severity
+  - AI-generated explanations and fixes
+  - Links to official documentation
+  - Timestamp and scan summary
 
 ## 🔍 Supported Infrastructure Formats
 
-DriftBuddy supports scanning of various Infrastructure as Code formats:
+DriftBuddy supports scanning the following IaC formats:
 
-- **Terraform** (`.tf`, `.tfvars`)
-- **AWS CloudFormation** (`.yaml`, `.yml`, `.json`)
-- **Kubernetes** (`.yaml`, `.yml`)
-- **Docker** (`Dockerfile`, `docker-compose.yml`)
-- **Azure Resource Manager** (`.json`)
-- **Google Cloud Platform** (`.yaml`, `.yml`)
-- **Ansible** (`.yml`, `.yaml`)
-- **OpenAPI** (`.yaml`, `.yml`, `.json`)
+| Format | Extensions | Examples |
+|--------|------------|----------|
+| **Terraform** | `.tf`, `.tfvars` | AWS, Azure, GCP resources |
+| **Kubernetes** | `.yaml`, `.yml` | Pods, Services, ConfigMaps |
+| **Docker** | `Dockerfile`, `.dockerfile` | Container configurations |
+| **AWS CloudFormation** | `.yaml`, `.yml`, `.json` | AWS infrastructure |
+| **Azure Bicep** | `.bicep` | Azure resources |
+| **Google Cloud** | `.yaml`, `.yml` | GCP deployment manager |
 
-## 🎯 Security Severity Levels
+## 🚨 Security Severity Levels
 
-DriftBuddy categorizes findings into five severity levels:
+DriftBuddy categorizes findings by severity:
 
 | Level | Color | Description |
 |-------|-------|-------------|
-| **CRITICAL** | 🔴 Red | Immediate security risk requiring urgent attention |
-| **HIGH** | 🟠 Orange | Significant security vulnerability |
-| **MEDIUM** | 🔵 Blue | Moderate security concern |
-| **LOW** | 🟢 Green | Minor security issue |
-| **INFO** | ⚪ Gray | Informational finding |
+| **CRITICAL** | 🔴 Red | Immediate security risks requiring urgent attention |
+| **HIGH** | 🟠 Orange | Significant security vulnerabilities |
+| **MEDIUM** | 🔵 Blue | Moderate security concerns |
+| **LOW** | 🟢 Green | Minor security issues or best practices |
+| **INFO** | ⚪ Gray | Informational findings |
 
 ## 📁 Project Structure
 
 ```
 driftbuddy/
+├── driftbuddy.py              # Main CLI application
 ├── agent/
-│   └── explainer.py          # AI explanation engine
+│   └── explainer.py           # AI explanation engine
+├── .github/
+│   └── workflows/             # GitHub Actions workflows
+│       ├── driftbuddy-basic.yml
+│       └── driftbuddy-scan.yml
+├── scripts/
+│   ├── run_kics.sh           # Docker KICS runner
+│   └── setup-github-actions.sh # GitHub Actions setup
 ├── test_data/
-│   ├── iac_example/          # Sample Terraform code
-│   └── output/               # KICS scan results
-├── driftbuddy.py             # Main CLI application
-├── drift_report.md           # Generated markdown report
-├── kics_explained.html       # Generated HTML dashboard
+│   └── iac_example/          # Sample vulnerable IaC files
+├── requirements.txt           # Python dependencies
 └── README.md                 # This file
 ```
 
-## 🔧 Configuration
+## ⚙️ Configuration
 
 ### Environment Variables
 
-Create a `.env` file in the project root:
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `OPENAI_API_KEY` | Your OpenAI API key | Yes |
+| `USE_DOCKER_KICS` | Use Docker KICS instead of local | No |
 
-```env
-OPENAI_API_KEY=your_openai_api_key_here
+### Command Line Options
+
+```bash
+python driftbuddy.py [SCAN_PATH] [OPTIONS]
+
+Options:
+  --html              Generate HTML dashboard
+  --md                Generate markdown report
+  --all               Generate all report formats
+  --output-dir DIR    KICS results directory (default: test_data/output)
+  --reports-dir DIR   Reports output directory (default: current directory)
+  --version           Show version information
 ```
-
-### KICS Configuration
-
-DriftBuddy uses KICS for security scanning. Ensure KICS is properly installed and accessible in your PATH.
 
 ## 🧪 Examples
 
 ### Example 1: Basic Terraform Scan
-
 ```bash
 # Scan a Terraform directory
-python driftbuddy.py ./my-terraform-project --html
+python driftbuddy.py ./terraform-infrastructure --all
 
-# This will:
-# 1. Run KICS scan on your Terraform files
-# 2. Generate AI explanations for each finding
-# 3. Create a beautiful HTML dashboard
-# 4. Save results as kics_explained.html
+# Output:
+# 📊 HTML Dashboard: driftbuddy_security_dashboard_20241225_143052.html
+# 📄 Markdown Report: driftbuddy_security_report_20241225_143052.md
 ```
 
-### Example 2: Comprehensive Report
-
+### Example 2: Kubernetes Security Scan
 ```bash
-# Generate both HTML and markdown reports
-python driftbuddy.py ./my-terraform-project --all
+# Scan Kubernetes manifests
+python driftbuddy.py ./k8s-manifests --html --reports-dir ./security-reports
 
-# This will create:
-# - kics_explained.html (interactive dashboard)
-# - drift_report.md (structured markdown report)
+# Output:
+# 📊 HTML Dashboard: ./security-reports/driftbuddy_security_dashboard_20241225_143052.html
 ```
 
-### Example Output
-
-After running a scan, you'll see output like:
-
+### Example 3: GitHub Actions Integration
+```yaml
+# .github/workflows/security-scan.yml
+name: Security Scan
+on: [push, pull_request]
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run DriftBuddy
+        run: |
+          python driftbuddy.py . --all --reports-dir ./reports
 ```
-🚀 Starting DriftBuddy Security Scan...
-📁 Scanning: ./terraform-code
-📊 Reports: HTML + Markdown
---------------------------------------------------
-🔍 Running KICS scan on: ./terraform-code
-✅ KICS scan completed. Results saved to: test_data/output/results.json
-🔍 Found 4 security issues to analyze...
-🧠 Sending prompt for: S3 Bucket ACL Allows Read Or Write to All Users
-📘 Response: [AI explanation of the issue and fix]
-🎨 Generating HTML dashboard...
-📝 Generating markdown report...
-📊 HTML dashboard generated: kics_explained.html
-📄 Markdown report generated: drift_report.md
 
-🎉 Scan completed successfully!
-💡 Open kics_explained.html in your browser to view the dashboard
-💡 View drift_report.md for detailed findings
+## 🔧 Troubleshooting
+
+### Common Issues
+
+#### KICS Not Found
+```bash
+# Install KICS
+curl -L https://github.com/Checkmarx/kics/releases/latest/download/kics_linux_amd64.tar.gz -o kics.tar.gz
+tar -xzf kics.tar.gz
+sudo mv kics /usr/local/bin/
 ```
+
+#### OpenAI API Key Issues
+```bash
+# Set API key
+export OPENAI_API_KEY="your-key-here"
+
+# Or use .env file
+echo "OPENAI_API_KEY=your-key-here" > .env
+```
+
+#### Docker KICS Alternative
+```bash
+# Use Docker if local KICS fails
+docker run --rm -v $(pwd):/path checkmarx/kics:latest scan -p /path
+```
+
+### Error Messages
+
+| Error | Solution |
+|-------|----------|
+| `KICS executable not found` | Install KICS or use Docker |
+| `OPENAI_API_KEY not found` | Set your OpenAI API key |
+| `No security issues found` | This is normal - your code is secure! |
+| `Invalid scan path` | Check that the path exists and contains IaC files |
 
 ## 🤝 Contributing
 
-We welcome contributions! Here's how you can help:
-
-1. **Fork the repository**
-2. **Create a feature branch**: `git checkout -b feature/amazing-feature`
-3. **Commit your changes**: `git commit -m 'Add amazing feature'`
-4. **Push to the branch**: `git push origin feature/amazing-feature`
-5. **Open a Pull Request**
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ### Development Setup
 
 ```bash
-# Clone and setup
-git clone https://github.com/yourusername/driftbuddy.git
+# Clone the repository
+git clone <repository-url>
 cd driftbuddy
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Set up environment
-cp .env.example .env
-# Edit .env with your OpenAI API key
+# Set up pre-commit hooks
+pip install pre-commit
+pre-commit install
 
 # Run tests
 python -m pytest tests/
@@ -263,103 +380,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- **KICS Team**: For the excellent security scanning engine
-- **OpenAI**: For providing the AI capabilities
-- **Community**: For feedback and contributions
+- **KICS** - The underlying security scanning engine
+- **OpenAI** - For providing the AI explanation capabilities
+- **GitHub Actions** - For the CI/CD integration framework
 
 ---
 
-**Made with ❤️ for the DevOps community**
-
-## 🛡️ **Enhanced Error Handling Features:**
-
-### **1. Invalid File Paths**
-- **Path validation** with detailed error messages
-- **Empty directory detection**
-- **File/directory existence checks**
-- **Graceful error reporting** with helpful suggestions
-
-### **2. No Findings Handling**
-- **Multiple detection points** for no findings
-- **Beautiful "no findings" reports** for both HTML and Markdown
-- **Positive messaging** when infrastructure is secure
-- **Proper exit codes** and user feedback
-
-### **3. Missing Explanations**
-- **OpenAI API key validation**
-- **Graceful fallback** when AI explanations fail
-- **Error recovery** for individual explanation failures
-- **Helpful error messages** with troubleshooting tips
-
-### **4. Enhanced Error Scenarios**
-
-#### **File Path Issues:**
-```bash
-❌ Error: Scan path './nonexistent' does not exist.
-❌ Error: Directory './empty-folder' is empty.
-❌ Error: 'invalid-path' is not a valid file or directory.
-```
-
-#### **KICS Scan Issues:**
-```bash
-❌ KICS executable not found. Please ensure KICS is installed and in your PATH.
-❌ KICS scan timed out after 5 minutes
-❌ KICS scan failed: [specific error message]
-```
-
-#### **API Issues:**
-```bash
-⚠️ Warning: OPENAI_API_KEY not found in environment variables
-💡 AI explanations will be skipped. Reports will be generated without AI insights.
-⚠️ Warning: Failed to get AI explanation for [query]: [error]
-```
-
-#### **No Findings Success:**
-```bash
-✅ No security issues found! Your infrastructure looks secure.
-📄 Markdown report generated: drift_report.md
-📊 HTML dashboard generated: kics_explained.html
-🎉 Scan completed successfully!
-💡 Your infrastructure appears to follow security best practices!
-```
-
-## 🛡️ **Key Improvements:**
-
-### **1. Robust Path Validation**
-- Checks file/directory existence
-- Validates path accessibility
-- Detects empty directories
-- Provides clear error messages
-
-### **2. Enhanced KICS Integration**
-- **Timeout handling** (5-minute limit)
-- **Exit code interpretation** (0, 40, 60)
-- **Error capture** from stderr
-- **Graceful failure** with helpful messages
-
-### **3. AI Explanation Resilience**
-- **API key validation**
-- **Individual error handling** per explanation
-- **Fallback messages** when AI fails
-- **Continue processing** even if some explanations fail
-
-### **4. Beautiful "No Findings" Reports**
-- **Success-themed HTML dashboard** with green styling
-- **Positive markdown reports** celebrating security
-- **Professional messaging** for secure infrastructure
-
-### **5. Comprehensive Error Recovery**
-- **Try-catch blocks** around all critical operations
-- **Graceful degradation** when features fail
-- **User-friendly error messages**
-- **Helpful troubleshooting tips**
-
-## 🚀 **User Experience Improvements:**
-
-1. **Clear Progress Feedback** - Users know exactly what's happening
-2. **Helpful Error Messages** - Specific guidance on how to fix issues
-3. **Graceful Degradation** - Tool continues working even if some features fail
-4. **Positive Reinforcement** - Celebrates when infrastructure is secure
-5. **Professional Output** - Beautiful reports even for edge cases
-
-The tool now handles all the edge cases gracefully and provides a much better user experience! 🎉
+**Made with ❤️ for secure infrastructure**

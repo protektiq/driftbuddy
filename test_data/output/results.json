@@ -20,11 +20,11 @@
 	},
 	"total_counter": 4,
 	"total_bom_resources": 0,
-	"start": "2025-07-25T19:49:20.058390835-07:00",
-	"end": "2025-07-25T19:49:56.670428777-07:00",
+	"start": "2025-07-25T21:24:42.052506537-07:00",
+	"end": "2025-07-25T21:25:17.107927229-07:00",
 	"paths": [
 		"./test_data/iac_example/main.tf",
-		"/mnt/d/driftbuddy/kics/assets/queries"
+		"kics/assets/queries"
 	],
 	"queries": [
 		{

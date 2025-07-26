@@ -7,14 +7,47 @@ from openai import OpenAI
 
 
 def load_kics_results(path="test_data/output/results.json"):
-    with open(path) as f:
-        data = json.load(f)
-    return data.get("queries", [])
+    """Load KICS results with enhanced error handling"""
+    try:
+        if not os.path.exists(path):
+            print(f"⚠️ Warning: Results file not found at {path}")
+            return []
+        
+        with open(path) as f:
+            data = json.load(f)
+        
+        queries = data.get("queries", [])
+        if not queries:
+            print("ℹ️ No queries found in results file")
+            return []
+        
+        return queries
+        
+    except json.JSONDecodeError as e:
+        print(f"❌ Error: Invalid JSON in results file: {str(e)}")
+        return []
+    except Exception as e:
+        print(f"❌ Error loading KICS results: {str(e)}")
+        return []
 
 
 def explain_findings(queries, output_md="kics_explained.md", output_html="kics_explained.html"):
+    """Explain findings with comprehensive error handling"""
     load_dotenv()
-    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    
+    # Check for OpenAI API key
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        print("⚠️ Warning: OPENAI_API_KEY not found in environment variables")
+        print("💡 AI explanations will be skipped. Reports will be generated without AI insights.")
+        return queries
+    
+    try:
+        client = OpenAI(api_key=api_key)
+    except Exception as e:
+        print(f"❌ Error initializing OpenAI client: {str(e)}")
+        print("💡 Reports will be generated without AI explanations")
+        return queries
 
     has_findings = False
     findings_by_severity = {
@@ -27,9 +60,9 @@ def explain_findings(queries, output_md="kics_explained.md", output_html="kics_e
 
     # Process all findings first
     for query in queries:
-        query_name = query.get("query_name")
+        query_name = query.get("query_name", "Unknown Query")
         severity = query.get("severity", "UNKNOWN").upper()
-        description = query.get("description")
+        description = query.get("description", "No description available")
         query_url = query.get("query_url", "#")
         files = query.get("files", [])
 
@@ -38,24 +71,41 @@ def explain_findings(queries, output_md="kics_explained.md", output_html="kics_e
             file_path = finding.get("file_name", "Unknown File")
             line = finding.get("line", "Unknown Line")
 
+            # Create a comprehensive prompt for better AI explanations
             prompt = f"""
-        The following issue was found in a Terraform file:
-        - Query: {query_name}
-        - File: {file_path}
-        - Severity: {severity}
-        - Line: {line}
-        - Description: {description}
+You are a security expert analyzing Infrastructure as Code (IaC) security findings. Please provide a clear, actionable explanation for the following security issue:
 
-        Please explain this issue in plain English and provide a secure Terraform code fix.
-        """
-            print(f"🧠 Sending prompt for: {query_name}")
-            response = client.chat.completions.create(
-                model="gpt-4",
-                messages=[{"role": "user", "content": prompt}],
-            )
+**Issue Details:**
+- Query Name: {query_name}
+- File: {file_path}
+- Line: {line}
+- Severity: {severity}
+- Description: {description}
 
-            explanation = response.choices[0].message.content.strip()
-            print(f"\n📘 Response:\n{explanation}\n{'=' * 50}\n")
+Please provide:
+1. A plain English explanation of what this security issue means
+2. Why it's a security concern
+3. A specific, secure code example showing how to fix it
+4. Best practices to prevent this issue
+
+Keep the explanation concise but comprehensive. Focus on practical, actionable advice.
+"""
+
+            try:
+                print(f"🧠 Sending prompt for: {query_name}")
+                response = client.chat.completions.create(
+                    model="gpt-4",
+                    messages=[{"role": "user", "content": prompt}],
+                    max_tokens=500,
+                    temperature=0.3
+                )
+
+                explanation = response.choices[0].message.content.strip()
+                print(f"✅ AI explanation generated for: {query_name}")
+                
+            except Exception as e:
+                print(f"⚠️ Warning: Failed to get AI explanation for {query_name}: {str(e)}")
+                explanation = f"Unable to generate AI explanation for this finding. Error: {str(e)}"
 
             # Store finding with all details
             finding_data = {
@@ -80,7 +130,11 @@ def explain_findings(queries, output_md="kics_explained.md", output_html="kics_e
 
     # Generate HTML dashboard if output_html is specified
     if output_html:
-        generate_html_dashboard(findings_by_severity, output_html)
+        try:
+            generate_html_dashboard(findings_by_severity, output_html)
+        except Exception as e:
+            print(f"❌ Error generating HTML dashboard: {str(e)}")
+            print("💡 Markdown report will still be generated")
     
     # Return the enriched queries for markdown rendering
     return queries
@@ -92,6 +146,114 @@ def generate_html_dashboard(findings_by_severity, output_html):
     # Count findings by severity
     severity_counts = {severity: len(findings) for severity, findings in findings_by_severity.items()}
     total_findings = sum(severity_counts.values())
+    
+    # Handle no findings case
+    if total_findings == 0:
+        html_content = f"""
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>DriftBuddy Security Report</title>
+            <style>
+                * {{
+                    margin: 0;
+                    padding: 0;
+                    box-sizing: border-box;
+                }}
+                
+                body {{
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                    line-height: 1.6;
+                    color: #333;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    min-height: 100vh;
+                }}
+                
+                .container {{
+                    max-width: 800px;
+                    margin: 0 auto;
+                    padding: 40px 20px;
+                }}
+                
+                .header {{
+                    background: white;
+                    border-radius: 15px;
+                    padding: 40px;
+                    margin-bottom: 30px;
+                    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+                    text-align: center;
+                }}
+                
+                .header h1 {{
+                    color: #27ae60;
+                    font-size: 2.5em;
+                    margin-bottom: 10px;
+                }}
+                
+                .header .subtitle {{
+                    color: #7f8c8d;
+                    font-size: 1.1em;
+                }}
+                
+                .success-card {{
+                    background: white;
+                    border-radius: 15px;
+                    padding: 40px;
+                    text-align: center;
+                    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+                }}
+                
+                .success-icon {{
+                    font-size: 4em;
+                    color: #27ae60;
+                    margin-bottom: 20px;
+                }}
+                
+                .success-message {{
+                    font-size: 1.3em;
+                    color: #2c3e50;
+                    margin-bottom: 20px;
+                }}
+                
+                .footer {{
+                    text-align: center;
+                    padding: 30px;
+                    color: white;
+                    font-size: 0.9em;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>🛡️ DriftBuddy Security Report</h1>
+                    <p class="subtitle">Infrastructure as Code Security Analysis Dashboard</p>
+                    <p class="subtitle">Generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+                </div>
+                
+                <div class="success-card">
+                    <div class="success-icon">✅</div>
+                    <div class="success-message">No Security Issues Found!</div>
+                    <p>Great news! Your infrastructure appears to follow security best practices.</p>
+                    <p><strong>Total Findings:</strong> 0</p>
+                    <p><strong>Status:</strong> ✅ Secure</p>
+                </div>
+            </div>
+            
+            <div class="footer">
+                <p>Generated by DriftBuddy - AI-Powered Security Scanner</p>
+            </div>
+        </body>
+        </html>
+        """
+        
+        with open(output_html, "w", encoding="utf-8") as f:
+            f.write(html_content)
+        
+        print(f"✅ Beautiful HTML dashboard saved as {output_html}")
+        return
     
     # Generate table of contents
     toc_html = ""

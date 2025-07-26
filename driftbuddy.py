@@ -2,33 +2,102 @@ import subprocess
 import os
 import sys
 import argparse
+import json
 from pathlib import Path
-from agent.explainer import load_kics_results, explain_findings
 from datetime import datetime
+from agent.explainer import load_kics_results, explain_findings
+
+def validate_scan_path(scan_path):
+    """Validate that the scan path exists and is accessible"""
+    try:
+        path = Path(scan_path)
+        if not path.exists():
+            return False, f"❌ Error: Scan path '{scan_path}' does not exist."
+        
+        if not path.is_dir() and not path.is_file():
+            return False, f"❌ Error: '{scan_path}' is not a valid file or directory."
+        
+        # Check if directory is empty
+        if path.is_dir() and not any(path.iterdir()):
+            return False, f"❌ Error: Directory '{scan_path}' is empty."
+        
+        return True, ""
+    except Exception as e:
+        return False, f"❌ Error validating scan path: {str(e)}"
 
 def run_kics(scan_path, output_dir="test_data/output"):
+    """Run KICS scan with enhanced error handling"""
     print(f"🔍 Running KICS scan on: {scan_path}")
-    Path(output_dir).mkdir(parents=True, exist_ok=True)
-
-    result = subprocess.run([
-        "kics",
-        "scan",
-        "--path", scan_path,
-        "--output-path", output_dir,
-        "--output-name", "results",
-        "--report-formats", "json",
-        "--queries-path", "/mnt/d/driftbuddy/kics/assets/queries"
-    ])
     
-    print(f"[DEBUG] KICS exited with code: {result.returncode}")
+    try:
+        Path(output_dir).mkdir(parents=True, exist_ok=True)
+    except Exception as e:
+        print(f"❌ Error creating output directory: {str(e)}")
+        return False, f"Failed to create output directory: {str(e)}"
 
-    if result.returncode in [0, 40, 60]:
-        print(f"✅ KICS scan completed. Results saved to: {output_dir}/results.json")
-    else:
-        print("❌ KICS scan failed due to an unexpected error.")
-        sys.exit(result.returncode)
+    try:
+        result = subprocess.run([
+            "kics",
+            "scan",
+            "--path", scan_path,
+            "--output-path", output_dir,
+            "--output-name", "results",
+            "--report-formats", "json",
+            "--queries-path", "/mnt/d/driftbuddy/kics/assets/queries"
+        ], capture_output=True, text=True, timeout=300)  # 5 minute timeout
+        
+        print(f"[DEBUG] KICS exited with code: {result.returncode}")
+        
+        if result.returncode in [0, 40, 60]:
+            print(f"✅ KICS scan completed. Results saved to: {output_dir}/results.json")
+            return True, ""
+        elif result.returncode == 40:
+            print("⚠️ KICS found no security issues (exit code 40)")
+            return True, "no_findings"
+        else:
+            error_msg = result.stderr if result.stderr else "Unknown KICS error"
+            print(f"❌ KICS scan failed: {error_msg}")
+            return False, f"KICS scan failed: {error_msg}"
+            
+    except subprocess.TimeoutExpired:
+        return False, "KICS scan timed out after 5 minutes"
+    except FileNotFoundError:
+        return False, "KICS executable not found. Please ensure KICS is installed and in your PATH."
+    except Exception as e:
+        return False, f"Unexpected error running KICS: {str(e)}"
+
+def load_kics_results_safe(results_path):
+    """Safely load KICS results with error handling"""
+    try:
+        if not os.path.exists(results_path):
+            return None, "Results file not found"
+        
+        with open(results_path, 'r') as f:
+            data = json.load(f)
+        
+        queries = data.get("queries", [])
+        if not queries:
+            return [], "no_findings"
+        
+        return queries, ""
+        
+    except json.JSONDecodeError as e:
+        return None, f"Invalid JSON in results file: {str(e)}"
+    except Exception as e:
+        return None, f"Error loading results: {str(e)}"
 
 def render_markdown_report(queries):
+    """Render markdown report with enhanced error handling"""
+    if not queries:
+        return "# 🧾 DriftBuddy Security Scan Report\n\n**Generated:** " + \
+               datetime.now().strftime('%Y-%m-%d %H:%M:%S') + "\n\n" + \
+               "## ✅ No Security Issues Found\n\n" + \
+               "Great news! No security vulnerabilities were detected in your infrastructure code.\n\n" + \
+               "**Scan Summary:**\n" + \
+               "- **Total Findings:** 0\n" + \
+               "- **Status:** ✅ Secure\n\n" + \
+               "Your infrastructure appears to follow security best practices. Keep up the good work! 🛡️"
+
     markdown = ""
     severity_count = {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0, "INFO": 0}
     
@@ -69,7 +138,7 @@ def render_markdown_report(queries):
                 query_name = query.get("query_name", "Unknown Query")
                 file = query['files'][0].get("file_name", "Unknown File") if query.get('files') else "Unknown File"
                 line = query['files'][0].get("line", "Unknown Line") if query.get('files') else "Unknown Line"
-                explanation = query.get("explanation", "No explanation provided.")
+                explanation = query.get("explanation", "No AI explanation available for this finding.")
                 url = query.get("url", "#")
                 description = query.get("description", "No description provided.")
 
@@ -136,8 +205,9 @@ Examples:
     args = parser.parse_args()
     
     # Validate scan path
-    if not os.path.exists(args.scan_path):
-        print(f"❌ Error: Scan path '{args.scan_path}' does not exist.")
+    is_valid, error_msg = validate_scan_path(args.scan_path)
+    if not is_valid:
+        print(error_msg)
         sys.exit(1)
     
     # Determine which reports to generate
@@ -153,38 +223,87 @@ Examples:
     print(f"📊 Reports: {'HTML' if generate_html else ''}{' + ' if generate_html and generate_md else ''}{'Markdown' if generate_md else ''}")
     print("-" * 50)
     
-    # Run KICS scan
-    run_kics(args.scan_path, args.output_dir)
+    # Run KICS scan with error handling
+    kics_success, kics_result = run_kics(args.scan_path, args.output_dir)
+    if not kics_success:
+        print(f"❌ KICS scan failed: {kics_result}")
+        sys.exit(1)
+    
+    # Handle no findings case
+    if kics_result == "no_findings":
+        print("✅ No security issues found! Your infrastructure looks secure.")
+        
+        if generate_md:
+            # Create a "no findings" report
+            no_findings_report = render_markdown_report([])
+            with open("drift_report.md", "w") as f:
+                f.write(no_findings_report)
+            print("📄 Markdown report generated: drift_report.md")
+        
+        if generate_html:
+            # Create a "no findings" HTML dashboard
+            from agent.explainer import generate_html_dashboard
+            generate_html_dashboard({}, "kics_explained.html")
+            print("📊 HTML dashboard generated: kics_explained.html")
+        
+        print("\n🎉 Scan completed successfully!")
+        print("💡 Your infrastructure appears to follow security best practices!")
+        return
 
-    # Load and process results
-    queries = load_kics_results(f"{args.output_dir}/results.json")
+    # Load and process results with error handling
+    results_path = f"{args.output_dir}/results.json"
+    queries, load_error = load_kics_results_safe(results_path)
+    
+    if queries is None:
+        print(f"❌ Error loading scan results: {load_error}")
+        sys.exit(1)
     
     if not queries:
         print("✅ No security issues found! Your infrastructure looks secure.")
+        
+        if generate_md:
+            no_findings_report = render_markdown_report([])
+            with open("drift_report.md", "w") as f:
+                f.write(no_findings_report)
+            print("📄 Markdown report generated: drift_report.md")
+        
+        if generate_html:
+            from agent.explainer import generate_html_dashboard
+            generate_html_dashboard({}, "kics_explained.html")
+            print("📊 HTML dashboard generated: kics_explained.html")
+        
+        print("\n🎉 Scan completed successfully!")
+        print("💡 Your infrastructure appears to follow security best practices!")
         return
     
     print(f"🔍 Found {len(queries)} security issues to analyze...")
     
-    # Generate reports based on flags
-    if generate_html:
-        print("🎨 Generating HTML dashboard...")
-        explain_findings(queries, output_html="kics_explained.html")
-        print("📊 HTML dashboard generated: kics_explained.html")
-    
-    if generate_md:
-        print("📝 Generating markdown report...")
-        enriched_queries = explain_findings(queries, output_html=None)  # Skip HTML generation
+    # Generate reports based on flags with error handling
+    try:
+        if generate_html:
+            print("🎨 Generating HTML dashboard...")
+            explain_findings(queries, output_html="kics_explained.html")
+            print("📊 HTML dashboard generated: kics_explained.html")
         
-        markdown_report = render_markdown_report(enriched_queries)
-        with open("drift_report.md", "w") as f:
-            f.write(markdown_report)
-        print("📄 Markdown report generated: drift_report.md")
-    
-    print("\n🎉 Scan completed successfully!")
-    if generate_html:
-        print("💡 Open kics_explained.html in your browser to view the dashboard")
-    if generate_md:
-        print("�� View drift_report.md for detailed findings")
+        if generate_md:
+            print("📝 Generating markdown report...")
+            enriched_queries = explain_findings(queries, output_html=None)  # Skip HTML generation
+            
+            markdown_report = render_markdown_report(enriched_queries)
+            with open("drift_report.md", "w") as f:
+                f.write(markdown_report)
+            print("📄 Markdown report generated: drift_report.md")
+        
+        print("\n🎉 Scan completed successfully!")
+        if generate_html:
+            print("💡 Open kics_explained.html in your browser to view the dashboard")
+        if generate_md:
+            print("💡 View drift_report.md for detailed findings")
+            
+    except Exception as e:
+        print(f"❌ Error generating reports: {str(e)}")
+        print("💡 Check your OpenAI API key and internet connection")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()

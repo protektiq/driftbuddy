@@ -1,0 +1,142 @@
+# Purposefully vulnerable GCP configuration for testing
+# This file contains multiple security flaws for demonstration
+
+# CRITICAL: Storage bucket with public access
+resources:
+- name: vulnerable-storage-bucket
+  type: storage.v1.bucket
+  properties:
+    project: my-vulnerable-project
+    name: vulnerable-storage-bucket-12345
+    # CRITICAL: Public access enabled
+    iamConfiguration:
+      publicAccessPrevention: "inherited"  # CRITICAL: Allows public access
+    # CRITICAL: No encryption specified
+    # encryption:
+    #   defaultKmsKeyName: projects/my-project/locations/us-central1/keyRings/my-keyring/cryptoKeys/my-key
+
+# HIGH: Compute instance with public IP
+- name: vulnerable-instance
+  type: compute.v1.instance
+  properties:
+    zone: us-central1-a
+    machineType: zones/us-central1-a/machineTypes/n1-standard-1
+    disks:
+    - deviceName: boot
+      type: PERSISTENT
+      boot: true
+      autoDelete: true
+      initializeParams:
+        sourceImage: projects/debian-cloud/global/images/family/debian-11
+    networkInterfaces:
+    - network: global/networks/default
+      accessConfigs:
+      - name: External NAT
+        type: ONE_TO_ONE_NAT
+        # HIGH: Public IP assigned
+        natIP: "34.123.45.67"  # HIGH: Static public IP
+    # HIGH: Weak metadata
+    metadata:
+      items:
+      - key: ssh-keys
+        value: "admin:ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC..."  # HIGH: SSH key in metadata
+      - key: startup-script
+        value: |
+          #!/bin/bash
+          # HIGH: Weak startup script
+          echo "admin:password123" | chpasswd  # HIGH: Weak password
+
+# HIGH: Firewall rule allowing all traffic
+- name: allow-all-firewall
+  type: compute.v1.firewall
+  properties:
+    network: global/networks/default
+    sourceRanges:
+    - "0.0.0.0/0"  # HIGH: Allows all source IPs
+    allowed:
+    - IPProtocol: tcp
+      ports:
+      - "22"  # HIGH: SSH open to internet
+    - IPProtocol: tcp
+      ports:
+      - "3389"  # HIGH: RDP open to internet
+    - IPProtocol: tcp
+      ports:
+      - "80"  # HIGH: HTTP open to internet
+    - IPProtocol: tcp
+      ports:
+      - "443"  # HIGH: HTTPS open to internet
+
+# MEDIUM: Cloud SQL instance with public IP
+- name: vulnerable-sql-instance
+  type: sqladmin.v1beta4.instance
+  properties:
+    name: vulnerable-sql-instance
+    region: us-central1
+    settings:
+      tier: db-n1-standard-1
+      # MEDIUM: Public IP enabled
+      ipConfiguration:
+        ipv4Enabled: true  # MEDIUM: Public IP enabled
+        authorizedNetworks:
+        - name: "all"
+          value: "0.0.0.0/0"  # MEDIUM: Allows all IPs
+      # MEDIUM: No encryption specified
+      # diskEncryptionConfiguration:
+      #   kmsKeyName: projects/my-project/locations/us-central1/keyRings/my-keyring/cryptoKeys/my-key
+
+# MEDIUM: Kubernetes cluster with public endpoint
+- name: vulnerable-gke-cluster
+  type: container.v1.cluster
+  properties:
+    zone: us-central1-a
+    cluster:
+      name: vulnerable-gke-cluster
+      # MEDIUM: Public endpoint enabled
+      privateClusterConfig:
+        enablePrivateEndpoint: false  # MEDIUM: Public endpoint enabled
+        enablePrivateNodes: false  # MEDIUM: Public nodes enabled
+      # MEDIUM: No network policy
+      # networkPolicy:
+      #   provider: CALICO
+      # MEDIUM: No pod security policy
+      # podSecurityPolicyConfig:
+      #   enabled: true
+
+# LOW: Cloud Storage bucket without lifecycle policy
+- name: no-lifecycle-bucket
+  type: storage.v1.bucket
+  properties:
+    project: my-vulnerable-project
+    name: no-lifecycle-bucket-12345
+    # LOW: No lifecycle policy specified
+    # lifecycle:
+    #   rule:
+    #   - action:
+    #       type: Delete
+    #     condition:
+    #       age: 90
+
+# LOW: IAM service account with excessive permissions
+- name: excessive-service-account
+  type: iam.v1.serviceAccount
+  properties:
+    accountId: excessive-service-account
+    displayName: Excessive Service Account
+    # LOW: No description specified
+
+# INFO: Cloud Function without HTTPS
+- name: vulnerable-function
+  type: cloudfunctions.v1.function
+  properties:
+    location: us-central1
+    function:
+      name: vulnerable-function
+      runtime: nodejs16
+      entryPoint: helloWorld
+      sourceArchiveUrl: gs://my-bucket/function.zip
+      httpsTrigger:
+        url: https://us-central1-my-project.cloudfunctions.net/vulnerable-function
+      # INFO: No HTTPS-only configuration
+      # httpsTrigger:
+      #   securityLevel: SECURE_ALWAYS 

@@ -1,0 +1,14 @@
+[
+  {
+    "line": 16,
+    "fileName": "positive1.yaml",
+    "queryName": "Security Groups Allows Unrestricted Outbound Traffic",
+    "severity": "MEDIUM"
+  },
+  {
+    "queryName": "Security Groups Allows Unrestricted Outbound Traffic",
+    "severity": "MEDIUM",
+    "line": 21,
+    "fileName": "positive2.json"
+  }
+]

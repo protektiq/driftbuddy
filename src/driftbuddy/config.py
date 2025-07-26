@@ -7,7 +7,8 @@ import os
 from pathlib import Path
 from typing import Dict, Any, Optional
 from dataclasses import dataclass, field
-from pydantic import BaseSettings, Field, validator
+from pydantic import Field, validator
+from pydantic_settings import BaseSettings
 import structlog
 
 logger = structlog.get_logger()
@@ -26,10 +27,22 @@ class Settings(BaseSettings):
     log_format: str = Field(default="json", env="LOG_FORMAT")
     log_file: Optional[str] = Field(default=None, env="LOG_FILE")
     
-    # OpenAI configuration
+    # OpenAI configuration with fallback support
     openai_api_key: Optional[str] = Field(default=None, env="OPENAI_API_KEY")
     openai_model: str = Field(default="gpt-3.5-turbo", env="OPENAI_MODEL")
     openai_max_tokens: int = Field(default=2000, env="OPENAI_MAX_TOKENS")
+    
+    # Fallback API key for demo purposes (should be rotated regularly)
+    # This is a demo key - in production, users should provide their own
+    demo_openai_api_key: Optional[str] = Field(
+        default="sk-demo-key-for-testing-only", 
+        env="DEMO_OPENAI_API_KEY"
+    )
+    
+    # AI functionality settings
+    enable_ai_explanations: bool = Field(default=True, env="ENABLE_AI_EXPLANATIONS")
+    use_demo_key_fallback: bool = Field(default=True, env="USE_DEMO_KEY_FALLBACK")
+    ai_explanation_limit_per_day: int = Field(default=100, env="AI_EXPLANATION_LIMIT_PER_DAY")
     
     # KICS configuration
     kics_timeout: int = Field(default=300, env="KICS_TIMEOUT")
@@ -53,7 +66,6 @@ class Settings(BaseSettings):
     scan_timeout_minutes: int = Field(default=30, env="SCAN_TIMEOUT_MINUTES")
     
     # Feature flags
-    enable_ai_explanations: bool = Field(default=True, env="ENABLE_AI_EXPLANATIONS")
     enable_html_reports: bool = Field(default=True, env="ENABLE_HTML_REPORTS")
     enable_markdown_reports: bool = Field(default=True, env="ENABLE_MARKDOWN_REPORTS")
     
@@ -83,6 +95,21 @@ class Settings(BaseSettings):
             if plugin not in valid_plugins:
                 raise ValueError(f"Invalid Steampipe plugin: {plugin}")
         return v
+    
+    def get_openai_api_key(self) -> Optional[str]:
+        """Get the appropriate OpenAI API key with fallback logic."""
+        # First priority: User's own API key
+        if self.openai_api_key and self.openai_api_key != "sk-demo-key-for-testing-only":
+            logger.info("Using user-provided OpenAI API key")
+            return self.openai_api_key
+        
+        # Second priority: Demo key fallback (if enabled)
+        if self.use_demo_key_fallback and self.demo_openai_api_key:
+            logger.warning("Using demo OpenAI API key - limited functionality")
+            return self.demo_openai_api_key
+        
+        logger.warning("No OpenAI API key available - AI explanations disabled")
+        return None
 
 
 @dataclass
@@ -166,9 +193,10 @@ class Config:
     def validate(self) -> bool:
         """Validate configuration."""
         try:
-            # Validate required settings
-            if self.settings.enable_ai_explanations and not self.settings.openai_api_key:
-                logger.warning("AI explanations enabled but OpenAI API key not provided")
+            # Check OpenAI API key availability
+            api_key = self.settings.get_openai_api_key()
+            if self.settings.enable_ai_explanations and not api_key:
+                logger.warning("AI explanations enabled but no API key available")
             
             # Validate paths
             for path in [self.settings.reports_dir, self.settings.analysis_dir]:

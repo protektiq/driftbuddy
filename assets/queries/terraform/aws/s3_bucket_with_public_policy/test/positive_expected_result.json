@@ -1,0 +1,14 @@
+[
+  {
+    "queryName": "S3 Bucket Allows Public Policy",
+    "severity": "HIGH",
+    "line": 11,
+    "filename": "positive1.tf"
+  },
+  {
+    "queryName": "S3 Bucket Allows Public Policy",
+    "severity": "HIGH",
+    "line": 5,
+    "filename": "positive2.tf"
+  }
+]

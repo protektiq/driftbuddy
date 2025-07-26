@@ -101,6 +101,10 @@ dev-setup: ## Complete development setup
 	make format
 	make test
 
+# API Key Setup
+setup-api-key: ## Set up OpenAI API key
+	python scripts/setup_api_key.py
+
 # Release
 release: ## Prepare for release
 	make clean

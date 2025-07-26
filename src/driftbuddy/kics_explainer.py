@@ -4,10 +4,20 @@ import os
 import markdown
 from datetime import datetime
 from dotenv import load_dotenv
+from .config import get_config
 
-# Load API key
-load_dotenv()
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# Load configuration
+config = get_config()
+logger = config.settings.log_level
+
+# Load API key with fallback support
+api_key = config.settings.get_openai_api_key()
+if not api_key:
+    print("⚠️ No OpenAI API key available. AI explanations will be disabled.")
+    print("💡 Set OPENAI_API_KEY environment variable or use demo mode.")
+    exit(1)
+
+client = OpenAI(api_key=api_key)
 
 markdown_output = "../../outputs/analysis/kics_explained.md"
 
@@ -28,73 +38,113 @@ has_findings = False
 
 for query in queries:
     query_name = query.get("query_name")
-    severity = query.get("severity")
-    description = query.get("description")
-    files = query.get("files", [])
-
-    for finding in files:
+    severity = query.get("severity", "UNKNOWN")
+    description = query.get("description", "No description available")
+    
+    # Get findings for this query
+    findings = query.get("files", [])
+    
+    if findings:
         has_findings = True
-        prompt = f"""
-        The following issue was found in a Terraform file:
-        - Query: {query_name}
-        - File: {finding['file_name']}
-        - Severity: {severity}
-        - Line: {finding['line']}
-        - Description: {description}
-
-        Please explain this issue in plain English and provide a secure Terraform code fix.
-        """
-
-        print(f"Sending prompt for: {query_name}")
-        response = client.chat.completions.create(
-            model="gpt-4",
-            messages=[{"role": "user", "content": prompt}],
-        )
-
-        explanation = response.choices[0].message.content.strip()
-
-        print("\nResponse:\n")
-        print(explanation)
-        print("\n" + "="*50 + "\n")
-
-        # Append to markdown file
-        # Append to markdown file
+        
+        # Write query header
         with open(markdown_output, "a") as md_file:
-            md_file.write(f"## {query_name}\n")
-            md_file.write(f"**File:** `{finding['file_name']}`\n\n")
-            md_file.write(f"**Severity:** `{severity}`  \n")
-            md_file.write(f"**Line:** `{finding['line']}`  \n")
+            md_file.write(f"## {query_name}\n\n")
+            md_file.write(f"**Severity:** {severity}\n\n")
             md_file.write(f"**Description:** {description}\n\n")
-            md_file.write(f"### Explanation & Fix:\n{explanation}\n\n")
-            md_file.write("---\n\n")
-
+        
+        # Process each finding
+        for finding in findings:
+            file_path = finding.get("file_name", "Unknown file")
+            line_number = finding.get("line", "Unknown line")
+            issue = finding.get("issue", "No issue description")
+            
+            # Generate AI explanation for this finding
+            try:
+                prompt = f"""
+                Explain this security finding in simple terms:
+                
+                File: {file_path}
+                Line: {line_number}
+                Issue: {issue}
+                Severity: {severity}
+                
+                Provide:
+                1. What the problem is
+                2. Why it's a security risk
+                3. How to fix it
+                4. Best practices to prevent this
+                
+                Keep it concise and actionable.
+                """
+                
+                response = client.chat.completions.create(
+                    model=config.settings.openai_model,
+                    messages=[
+                        {"role": "system", "content": "You are a cybersecurity expert explaining security findings in clear, actionable terms."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    max_tokens=config.settings.openai_max_tokens,
+                    temperature=0.3
+                )
+                
+                ai_explanation = response.choices[0].message.content.strip()
+                
+                # Write finding with AI explanation
+                with open(markdown_output, "a") as md_file:
+                    md_file.write(f"### Finding in {file_path}:{line_number}\n\n")
+                    md_file.write(f"**Issue:** {issue}\n\n")
+                    md_file.write("**AI Explanation:**\n\n")
+                    md_file.write(f"{ai_explanation}\n\n")
+                    md_file.write("---\n\n")
+                
+            except Exception as e:
+                print(f"Error generating AI explanation for {file_path}: {e}")
+                # Write finding without AI explanation
+                with open(markdown_output, "a") as md_file:
+                    md_file.write(f"### Finding in {file_path}:{line_number}\n\n")
+                    md_file.write(f"**Issue:** {issue}\n\n")
+                    md_file.write("*AI explanation unavailable*\n\n")
+                    md_file.write("---\n\n")
 
 if not has_findings:
-    print("No findings found in any queries.")
+    with open(markdown_output, "a") as md_file:
+        md_file.write("## No Security Findings\n\n")
+        md_file.write("Great job! No security issues were detected in your infrastructure code.\n\n")
 
-# Convert markdown to HTML
+# Convert to HTML
 with open(markdown_output, "r") as md_file:
     md_text = md_file.read()
 
 html_output = markdown.markdown(md_text, extensions=["fenced_code", "tables"])
 
-# Save to .html
-with open("kics_explained.html", "w") as html_file:
+html_filename = markdown_output.replace(".md", ".html")
+with open(html_filename, "w") as html_file:
     html_file.write(f"""
-    <html>
-    <head>
-      <meta charset="UTF-8">
-      <title>KICS Explainer Output</title>
-      <style>
-        body {{ font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: auto; }}
-        pre {{ background: #f4f4f4; padding: 10px; overflow-x: auto; }}
-        code {{ font-family: monospace; }}
-        h2 {{ color: #2c3e50; }}
-      </style>
-    </head>
-    <body>
-      {html_output}
-    </body>
-    </html>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KICS Explainer Output</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; margin: 40px; }}
+        h1 {{ color: #2c3e50; }}
+        h2 {{ color: #34495e; border-bottom: 2px solid #ecf0f1; padding-bottom: 10px; }}
+        h3 {{ color: #7f8c8d; }}
+        code {{ background-color: #f8f9fa; padding: 2px 4px; border-radius: 3px; }}
+        pre {{ background-color: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto; }}
+        .severity-high {{ color: #e74c3c; }}
+        .severity-medium {{ color: #f39c12; }}
+        .severity-low {{ color: #27ae60; }}
+    </style>
+</head>
+<body>
+    {html_output}
+</body>
+</html>
     """)
-print("✅ HTML report saved as kics_explained.html")
+
+print(f"✅ KICS explanation generated:")
+print(f"   📄 Markdown: {markdown_output}")
+print(f"   🌐 HTML: {html_filename}")

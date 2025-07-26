@@ -1,688 +1,543 @@
-import os
-import json
-import markdown
-from datetime import datetime
-from dotenv import load_dotenv
-from openai import OpenAI
-
-
-def load_kics_results(path="test_data/output/results.json"):
-    """Load KICS results with enhanced error handling"""
-    try:
-        if not os.path.exists(path):
-            print(f"⚠️ Warning: Results file not found at {path}")
-            return []
-        
-        with open(path) as f:
-            data = json.load(f)
-        
-        queries = data.get("queries", [])
-        if not queries:
-            print("ℹ️ No queries found in results file")
-            return []
-        
-        return queries
-        
-    except json.JSONDecodeError as e:
-        print(f"❌ Error: Invalid JSON in results file: {str(e)}")
-        return []
-    except Exception as e:
-        print(f"❌ Error loading KICS results: {str(e)}")
-        return []
-
-
-def explain_findings(queries, output_md="kics_explained.md", output_html="kics_explained.html"):
-    """Explain findings with comprehensive error handling"""
-    load_dotenv()
-    
-    # Check for OpenAI API key
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        print("⚠️ Warning: OPENAI_API_KEY not found in environment variables")
-        print("💡 AI explanations will be skipped. Reports will be generated without AI insights.")
-        return queries
-    
-    try:
-        client = OpenAI(api_key=api_key)
-    except Exception as e:
-        print(f"❌ Error initializing OpenAI client: {str(e)}")
-        print("💡 Reports will be generated without AI explanations")
-        return queries
-
-    has_findings = False
-    findings_by_severity = {
-        "CRITICAL": [],
-        "HIGH": [],
-        "MEDIUM": [],
-        "LOW": [],
-        "INFO": []
-    }
-
-    # Process all findings first
-    for query in queries:
-        query_name = query.get("query_name", "Unknown Query")
-        severity = query.get("severity", "UNKNOWN").upper()
-        description = query.get("description", "No description available")
-        query_url = query.get("query_url", "#")
-        files = query.get("files", [])
-
-        for finding in files:
-            has_findings = True
-            file_path = finding.get("file_name", "Unknown File")
-            line = finding.get("line", "Unknown Line")
-
-            # Create a comprehensive prompt for better AI explanations
-            prompt = f"""
-You are a security expert analyzing Infrastructure as Code (IaC) security findings. Please provide a clear, actionable explanation for the following security issue:
-
-**Issue Details:**
-- Query Name: {query_name}
-- File: {file_path}
-- Line: {line}
-- Severity: {severity}
-- Description: {description}
-
-Please provide:
-1. A plain English explanation of what this security issue means
-2. Why it's a security concern
-3. A specific, secure code example showing how to fix it
-4. Best practices to prevent this issue
-
-Keep the explanation concise but comprehensive. Focus on practical, actionable advice.
+"""
+AI-powered explanation agent for DriftBuddy security findings.
+Provides detailed, actionable explanations of security issues with business risk context.
 """
 
-            try:
-                print(f"🧠 Sending prompt for: {query_name}")
-                response = client.chat.completions.create(
-                    model="gpt-4",
-                    messages=[{"role": "user", "content": prompt}],
-                    max_tokens=500,
-                    temperature=0.3
-                )
+import json
+import os
+from datetime import datetime
+from typing import Dict, List, Any, Optional
+from openai import OpenAI
+from driftbuddy.config import get_config
+from driftbuddy.risk_assessment import RiskMatrix
 
-                explanation = response.choices[0].message.content.strip()
-                print(f"✅ AI explanation generated for: {query_name}")
-                
-            except Exception as e:
-                print(f"⚠️ Warning: Failed to get AI explanation for {query_name}: {str(e)}")
-                explanation = f"Unable to generate AI explanation for this finding. Error: {str(e)}"
+# Load configuration
+config = get_config()
 
-            # Store finding with all details
-            finding_data = {
-                "query_name": query_name,
-                "severity": severity,
-                "description": description,
-                "file_path": file_path,
-                "line": line,
-                "explanation": explanation,
-                "url": query_url
+def load_kics_results(results_path: str) -> Dict[str, Any]:
+    """
+    Load KICS scan results from JSON file.
+    
+    Args:
+        results_path: Path to the KICS results JSON file
+        
+    Returns:
+        Dictionary containing the scan results
+    """
+    try:
+        with open(results_path, 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        print(f"❌ Results file not found: {results_path}")
+        return {}
+    except json.JSONDecodeError:
+        print(f"❌ Invalid JSON in results file: {results_path}")
+        return {}
+
+def explain_findings(queries: List[Dict], output_html: Optional[str] = None) -> List[Dict]:
+    """
+    Generate AI-powered explanations for security findings with business risk context.
+    
+    Args:
+        queries: List of query results from KICS
+        output_html: Optional path for HTML output file
+        
+    Returns:
+        List of queries with AI explanations and business risk assessment added
+    """
+    # Get API key with fallback support
+    api_key = config.settings.get_openai_api_key()
+    if not api_key:
+        print("⚠️ No OpenAI API key available. AI explanations will be disabled.")
+        print("💡 Set OPENAI_API_KEY environment variable or use demo mode.")
+        return queries
+    
+    client = OpenAI(api_key=api_key)
+    
+    enriched_queries = []
+    
+    for query in queries:
+        query_name = query.get("query_name", "Unknown Query")
+        severity = query.get("severity", "UNKNOWN")
+        description = query.get("description", "No description available")
+        files = query.get("files", [])
+        
+        if not files:
+            # No findings for this query
+            enriched_queries.append(query)
+            continue
+        
+        print(f"🤖 Generating AI explanations for: {query_name}")
+        
+        # Get business risk assessment
+        risk_assessment = RiskMatrix.assess_risk(query_name, severity, description)
+        
+        # Generate AI explanation for the query with business context
+        try:
+            prompt = f"""
+            As a cybersecurity expert and business risk analyst, explain this security finding with business context:
+            
+            Query: {query_name}
+            Technical Severity: {severity}
+            Description: {description}
+            Number of affected files: {len(files)}
+            
+            Business Risk Assessment:
+            - Impact: {risk_assessment.impact.value} - {risk_assessment.impact_description}
+            - Likelihood: {risk_assessment.likelihood.value} - {risk_assessment.likelihood_description}
+            - Business Risk: {risk_assessment.business_risk.value}
+            - Estimated Cost: {risk_assessment.cost_estimate}
+            - Time to Fix: {risk_assessment.time_to_fix}
+            
+            Provide a comprehensive explanation including:
+            1. What this security issue is (technical explanation)
+            2. Why it's a business risk (impact on operations, compliance, reputation)
+            3. How it can be exploited (attack scenarios)
+            4. How to fix it (technical solution)
+            5. Business justification for fixing it (cost-benefit analysis)
+            6. Timeline and priority recommendations
+            
+            Make it clear and actionable for both technical teams and business stakeholders.
+            Focus on the business impact and why this matters to the organization.
+            """
+            
+            response = client.chat.completions.create(
+                model=config.settings.openai_model,
+                messages=[
+                    {"role": "system", "content": "You are a cybersecurity expert and business risk analyst providing clear, actionable security advice with business context."},
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=config.settings.openai_max_tokens,
+                temperature=0.3
+            )
+            
+            ai_explanation = response.choices[0].message.content.strip()
+            
+            # Add AI explanation and risk assessment to query
+            query["ai_explanation"] = ai_explanation
+            query["risk_assessment"] = {
+                "impact": risk_assessment.impact.value,
+                "likelihood": risk_assessment.likelihood.value,
+                "business_risk": risk_assessment.business_risk.value,
+                "impact_description": risk_assessment.impact_description,
+                "likelihood_description": risk_assessment.likelihood_description,
+                "business_context": risk_assessment.business_context,
+                "remediation_priority": risk_assessment.remediation_priority,
+                "cost_estimate": risk_assessment.cost_estimate,
+                "time_to_fix": risk_assessment.time_to_fix
             }
             
-            findings_by_severity[severity].append(finding_data)
+            # Generate specific explanations for each finding
+            for file_finding in files:
+                file_name = file_finding.get("file_name", "Unknown file")
+                line_number = file_finding.get("line", "Unknown line")
+                issue = file_finding.get("issue", "No issue description")
+                
+                try:
+                    finding_prompt = f"""
+                    Provide a specific fix for this security finding with business context:
+                    
+                    File: {file_name}
+                    Line: {line_number}
+                    Issue: {issue}
+                    Technical Severity: {severity}
+                    Business Risk: {risk_assessment.business_risk.value}
+                    Estimated Cost: {risk_assessment.cost_estimate}
+                    
+                    Provide:
+                    1. The exact code fix
+                    2. Why this fix works (technical explanation)
+                    3. Business benefits of implementing this fix
+                    4. Additional security considerations
+                    5. Implementation timeline and effort
+                    
+                    Be specific and provide actual code examples. Include business justification.
+                    """
+                    
+                    finding_response = client.chat.completions.create(
+                        model=config.settings.openai_model,
+                        messages=[
+                            {"role": "system", "content": "You are a cybersecurity expert providing specific code fixes with business context."},
+                            {"role": "user", "content": finding_prompt}
+                        ],
+                        max_tokens=config.settings.openai_max_tokens,
+                        temperature=0.3
+                    )
+                    
+                    file_finding["ai_fix"] = finding_response.choices[0].message.content.strip()
+                    
+                except Exception as e:
+                    print(f"⚠️ Error generating fix for {file_name}: {e}")
+                    file_finding["ai_fix"] = "AI fix generation failed"
             
-            # Also enrich the original query for markdown rendering
-            query["explanation"] = explanation
-            query["url"] = query_url
-
-    if not has_findings:
-        print("⚠️ No findings found in any queries.")
-        return queries
-
-    # Generate HTML dashboard if output_html is specified
-    if output_html:
-        try:
-            generate_html_dashboard(findings_by_severity, output_html)
         except Exception as e:
-            print(f"❌ Error generating HTML dashboard: {str(e)}")
-            print("💡 Markdown report will still be generated")
+            print(f"⚠️ Error generating explanation for {query_name}: {e}")
+            query["ai_explanation"] = "AI explanation generation failed"
+        
+        enriched_queries.append(query)
     
-    # Return the enriched queries for markdown rendering
-    return queries
+    # Generate HTML report if requested
+    if output_html:
+        generate_html_report(enriched_queries, output_html)
+    
+    return enriched_queries
 
-
-def generate_html_dashboard(findings_by_severity, output_html):
-    """Generate a beautiful HTML dashboard with findings grouped by severity"""
+def generate_html_report(queries: List[Dict], output_path: str):
+    """
+    Generate an HTML report with AI explanations and business risk assessment.
     
-    # Count findings by severity
-    severity_counts = {severity: len(findings) for severity, findings in findings_by_severity.items()}
-    total_findings = sum(severity_counts.values())
-    
-    # Handle no findings case
-    if total_findings == 0:
-        html_content = f"""
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>DriftBuddy Security Report</title>
-            <style>
-                * {{
-                    margin: 0;
-                    padding: 0;
-                    box-sizing: border-box;
-                }}
-                
-                body {{
-                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                    line-height: 1.6;
-                    color: #333;
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    min-height: 100vh;
-                }}
-                
-                .container {{
-                    max-width: 800px;
-                    margin: 0 auto;
-                    padding: 40px 20px;
-                }}
-                
-                .header {{
-                    background: white;
-                    border-radius: 15px;
-                    padding: 40px;
-                    margin-bottom: 30px;
-                    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-                    text-align: center;
-                }}
-                
-                .header h1 {{
-                    color: #27ae60;
-                    font-size: 2.5em;
-                    margin-bottom: 10px;
-                }}
-                
-                .header .subtitle {{
-                    color: #7f8c8d;
-                    font-size: 1.1em;
-                }}
-                
-                .success-card {{
-                    background: white;
-                    border-radius: 15px;
-                    padding: 40px;
-                    text-align: center;
-                    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-                }}
-                
-                .success-icon {{
-                    font-size: 4em;
-                    color: #27ae60;
-                    margin-bottom: 20px;
-                }}
-                
-                .success-message {{
-                    font-size: 1.3em;
-                    color: #2c3e50;
-                    margin-bottom: 20px;
-                }}
-                
-                .footer {{
-                    text-align: center;
-                    padding: 30px;
-                    color: white;
-                    font-size: 0.9em;
-                }}
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <div class="header">
-                    <h1>🛡️ DriftBuddy Security Report</h1>
-                    <p class="subtitle">Infrastructure as Code Security Analysis Dashboard</p>
-                    <p class="subtitle">Generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
-                </div>
-                
-                <div class="success-card">
-                    <div class="success-icon">✅</div>
-                    <div class="success-message">No Security Issues Found!</div>
-                    <p>Great news! Your infrastructure appears to follow security best practices.</p>
-                    <p><strong>Total Findings:</strong> 0</p>
-                    <p><strong>Status:</strong> ✅ Secure</p>
-                </div>
-            </div>
-            
-            <div class="footer">
-                <p>Generated by DriftBuddy - AI-Powered Security Scanner</p>
-            </div>
-        </body>
-        </html>
-        """
-        
-        with open(output_html, "w", encoding="utf-8") as f:
-            f.write(html_content)
-        
-        print(f"✅ Beautiful HTML dashboard saved as {output_html}")
-        return
-    
-    # Generate table of contents
-    toc_html = ""
-    if total_findings > 3:  # Only show TOC if there are many findings
-        toc_html = """
-        <div class="toc">
-            <h3>📋 Table of Contents</h3>
-            <ul>
-        """
-        for severity in ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"]:
-            if severity_counts[severity] > 0:
-                toc_html += f'<li><a href="#{severity.lower()}-section">{severity} ({severity_counts[severity]})</a></li>'
-        toc_html += "</ul></div>"
-    
-    # Generate findings HTML
-    findings_html = ""
-    for severity in ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"]:
-        findings = findings_by_severity[severity]
-        if findings:
-            findings_html += f'<div id="{severity.lower()}-section" class="severity-section">'
-            findings_html += f'<h2 class="severity-header {severity.lower()}">{severity} ({len(findings)})</h2>'
-            
-            for i, finding in enumerate(findings):
-                findings_html += f"""
-                <div class="finding-card">
-                    <div class="finding-header">
-                        <span class="severity-badge {severity.lower()}">{severity}</span>
-                        <h3 class="finding-title">{finding['query_name']}</h3>
-                    </div>
-                    <div class="finding-details">
-                        <div class="detail-item">
-                            <strong>📁 File:</strong> <code>{finding['file_path']}</code>
-                        </div>
-                        <div class="detail-item">
-                            <strong>📍 Line:</strong> <code>{finding['line']}</code>
-                        </div>
-                        <div class="detail-item">
-                            <strong>📝 Description:</strong> {finding['description']}
-                        </div>
-                    </div>
-                    <div class="finding-explanation">
-                        <h4>🔍 Explanation & Fix</h4>
-                        <div class="explanation-content">
-                            {finding['explanation'].replace('\n', '<br>')}
-                        </div>
-                    </div>
-                    <div class="finding-footer">
-                        <a href="{finding['url']}" target="_blank" class="learn-more-btn">📚 Learn More</a>
-                    </div>
-                </div>
-                """
-            findings_html += '</div>'
-    
-    # Generate summary cards
-    summary_cards = ""
-    for severity in ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"]:
-        count = severity_counts[severity]
-        if count > 0:
-            summary_cards += f"""
-            <div class="summary-card {severity.lower()}">
-                <div class="summary-number">{count}</div>
-                <div class="summary-label">{severity}</div>
-            </div>
-            """
-    
-    html_content = f"""
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>DriftBuddy Security Report</title>
-        <style>
-            * {{
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-            }}
-            
-            body {{
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                line-height: 1.6;
-                color: #333;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                min-height: 100vh;
-            }}
-            
-            .container {{
-                max-width: 1200px;
-                margin: 0 auto;
-                padding: 20px;
-            }}
-            
-            .header {{
-                background: white;
-                border-radius: 15px;
-                padding: 30px;
-                margin-bottom: 30px;
-                box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-                text-align: center;
-            }}
-            
-            .header h1 {{
-                color: #2c3e50;
-                font-size: 2.5em;
-                margin-bottom: 10px;
-            }}
-            
-            .header .subtitle {{
-                color: #7f8c8d;
-                font-size: 1.1em;
-            }}
-            
-            .summary-section {{
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                gap: 20px;
-                margin-bottom: 30px;
-            }}
-            
-            .summary-card {{
-                background: white;
-                border-radius: 15px;
-                padding: 25px;
-                text-align: center;
-                box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-                transition: transform 0.3s ease;
-            }}
-            
-            .summary-card:hover {{
-                transform: translateY(-5px);
-            }}
-            
-            .summary-number {{
-                font-size: 2.5em;
-                font-weight: bold;
-                margin-bottom: 5px;
-            }}
-            
-            .summary-label {{
-                font-size: 1.1em;
-                font-weight: 500;
-            }}
-            
-            .summary-card.critical {{
-                border-left: 5px solid #e74c3c;
-            }}
-            .summary-card.critical .summary-number {{
-                color: #e74c3c;
-            }}
-            
-            .summary-card.high {{
-                border-left: 5px solid #f39c12;
-            }}
-            .summary-card.high .summary-number {{
-                color: #f39c12;
-            }}
-            
-            .summary-card.medium {{
-                border-left: 5px solid #3498db;
-            }}
-            .summary-card.medium .summary-number {{
-                color: #3498db;
-            }}
-            
-            .summary-card.low {{
-                border-left: 5px solid #27ae60;
-            }}
-            .summary-card.low .summary-number {{
-                color: #27ae60;
-            }}
-            
-            .summary-card.info {{
-                border-left: 5px solid #95a5a6;
-            }}
-            .summary-card.info .summary-number {{
-                color: #95a5a6;
-            }}
-            
-            .toc {{
-                background: white;
-                border-radius: 15px;
-                padding: 25px;
-                margin-bottom: 30px;
-                box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-                position: sticky;
-                top: 20px;
-                z-index: 100;
-            }}
-            
-            .toc h3 {{
-                color: #2c3e50;
-                margin-bottom: 15px;
-            }}
-            
-            .toc ul {{
-                list-style: none;
-            }}
-            
-            .toc li {{
-                margin-bottom: 8px;
-            }}
-            
-            .toc a {{
-                color: #3498db;
-                text-decoration: none;
-                font-weight: 500;
-                transition: color 0.3s ease;
-            }}
-            
-            .toc a:hover {{
-                color: #2980b9;
-            }}
-            
-            .severity-section {{
-                margin-bottom: 40px;
-            }}
-            
-            .severity-header {{
-                background: white;
-                border-radius: 15px 15px 0 0;
-                padding: 20px 25px;
-                margin-bottom: 0;
-                font-size: 1.5em;
-                font-weight: 600;
-            }}
-            
-            .severity-header.critical {{
-                background: linear-gradient(135deg, #e74c3c, #c0392b);
-                color: white;
-            }}
-            
-            .severity-header.high {{
-                background: linear-gradient(135deg, #f39c12, #e67e22);
-                color: white;
-            }}
-            
-            .severity-header.medium {{
-                background: linear-gradient(135deg, #3498db, #2980b9);
-                color: white;
-            }}
-            
-            .severity-header.low {{
-                background: linear-gradient(135deg, #27ae60, #229954);
-                color: white;
-            }}
-            
-            .severity-header.info {{
-                background: linear-gradient(135deg, #95a5a6, #7f8c8d);
-                color: white;
-            }}
-            
-            .finding-card {{
-                background: white;
-                border-radius: 0 0 15px 15px;
-                margin-bottom: 20px;
-                box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-                overflow: hidden;
-            }}
-            
-            .finding-header {{
-                padding: 20px 25px;
-                border-bottom: 1px solid #ecf0f1;
-                display: flex;
-                align-items: center;
-                gap: 15px;
-            }}
-            
-            .severity-badge {{
-                padding: 5px 12px;
-                border-radius: 20px;
-                font-size: 0.8em;
-                font-weight: 600;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-            }}
-            
-            .severity-badge.critical {{
-                background: #e74c3c;
-                color: white;
-            }}
-            
-            .severity-badge.high {{
-                background: #f39c12;
-                color: white;
-            }}
-            
-            .severity-badge.medium {{
-                background: #3498db;
-                color: white;
-            }}
-            
-            .severity-badge.low {{
-                background: #27ae60;
-                color: white;
-            }}
-            
-            .severity-badge.info {{
-                background: #95a5a6;
-                color: white;
-            }}
-            
-            .finding-title {{
-                color: #2c3e50;
-                font-size: 1.3em;
-                margin: 0;
-            }}
-            
-            .finding-details {{
-                padding: 20px 25px;
-                background: #f8f9fa;
-            }}
-            
-            .detail-item {{
-                margin-bottom: 10px;
-            }}
-            
-            .detail-item:last-child {{
-                margin-bottom: 0;
-            }}
-            
-            .detail-item code {{
-                background: #e9ecef;
-                padding: 2px 6px;
-                border-radius: 4px;
-                font-family: 'Courier New', monospace;
-            }}
-            
-            .finding-explanation {{
-                padding: 20px 25px;
-            }}
-            
-            .finding-explanation h4 {{
-                color: #2c3e50;
-                margin-bottom: 15px;
-                font-size: 1.1em;
-            }}
-            
-            .explanation-content {{
-                background: #f8f9fa;
-                padding: 15px;
-                border-radius: 8px;
-                border-left: 4px solid #3498db;
-                line-height: 1.7;
-            }}
-            
-            .finding-footer {{
-                padding: 15px 25px;
-                background: #f8f9fa;
-                border-top: 1px solid #ecf0f1;
-            }}
-            
-            .learn-more-btn {{
-                display: inline-block;
-                background: #3498db;
-                color: white;
-                padding: 8px 16px;
-                border-radius: 6px;
-                text-decoration: none;
-                font-weight: 500;
-                transition: background 0.3s ease;
-            }}
-            
-            .learn-more-btn:hover {{
-                background: #2980b9;
-            }}
-            
-            .footer {{
-                text-align: center;
-                padding: 30px;
-                color: white;
-                font-size: 0.9em;
-            }}
-            
-            @media (max-width: 768px) {{
-                .container {{
-                    padding: 10px;
-                }}
-                
-                .header h1 {{
-                    font-size: 2em;
-                }}
-                
-                .summary-section {{
-                    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-                }}
-                
-                .finding-header {{
-                    flex-direction: column;
-                    align-items: flex-start;
-                    gap: 10px;
-                }}
-            }}
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <div class="header">
-                <h1>🛡️ DriftBuddy Security Report</h1>
-                <p class="subtitle">Infrastructure as Code Security Analysis Dashboard</p>
-                <p class="subtitle">Generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
-            </div>
-            
-            <div class="summary-section">
-                {summary_cards}
-            </div>
-            
-            {toc_html}
-            
-            <div class="findings-content">
-                {findings_html}
-            </div>
-        </div>
-        
-        <div class="footer">
-            <p>Generated by DriftBuddy - AI-Powered Security Scanner</p>
-        </div>
-    </body>
-    </html>
+    Args:
+        queries: List of enriched queries with AI explanations and risk assessment
+        output_path: Path for the HTML output file
     """
     
-    with open(output_html, "w", encoding="utf-8") as f:
-        f.write(html_content)
+    # Calculate risk summary
+    risk_summary = {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+        "minimal": 0
+    }
     
-    print(f"✅ Beautiful HTML dashboard saved as {output_html}")
+    total_estimated_cost = 0
+    
+    for query in queries:
+        risk_assessment = query.get("risk_assessment", {})
+        business_risk = risk_assessment.get("business_risk", "Medium").lower()
+        risk_summary[business_risk] += 1
+        
+        # Calculate total cost
+        cost_str = risk_assessment.get("cost_estimate", "$0")
+        if "$" in cost_str:
+            try:
+                cost_range = cost_str.replace("$", "").replace("K", "000").replace("+", "")
+                if "-" in cost_range:
+                    min_cost, max_cost = cost_range.split("-")
+                    avg_cost = (int(min_cost) + int(max_cost)) / 2
+                else:
+                    avg_cost = int(cost_range)
+                total_estimated_cost += avg_cost
+            except:
+                pass
+    
+    html_content = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DriftBuddy Security Report</title>
+    <style>
+        body {{
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }}
+        .container {{
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }}
+        h1 {{
+            color: #2c3e50;
+            text-align: center;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }}
+        h2 {{
+            color: #34495e;
+            border-left: 4px solid #3498db;
+            padding-left: 15px;
+            margin-top: 30px;
+        }}
+        h3 {{
+            color: #7f8c8d;
+            margin-top: 20px;
+        }}
+        .risk-matrix {{
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }}
+        .risk-summary {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }}
+        .risk-card {{
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            color: white;
+            font-weight: bold;
+        }}
+        .risk-critical {{ background: #e74c3c; }}
+        .risk-high {{ background: #f39c12; }}
+        .risk-medium {{ background: #3498db; }}
+        .risk-low {{ background: #27ae60; }}
+        .risk-minimal {{ background: #95a5a6; }}
+        .finding {{
+            background: #f8f9fa;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #3498db;
+        }}
+        .ai-explanation {{
+            background: #e8f4fd;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #3498db;
+        }}
+        .ai-fix {{
+            background: #f0f8f0;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #27ae60;
+        }}
+        .risk-assessment {{
+            background: #fff3cd;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #ffc107;
+        }}
+        code {{
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }}
+        pre {{
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }}
+        .summary {{
+            background: #e8f5e8;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }}
+        .timestamp {{
+            color: #7f8c8d;
+            text-align: center;
+            font-style: italic;
+        }}
+        .cost-highlight {{
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-weight: bold;
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔒 DriftBuddy Security Report</h1>
+        <p class="timestamp">Generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+        
+        <div class="summary">
+            <h2>📊 Executive Summary</h2>
+            <p>This report contains AI-powered explanations of security findings with business risk assessment.</p>
+            <p><strong>Total Queries:</strong> {len(queries)}</p>
+            <p><strong>Findings with Issues:</strong> {sum(1 for q in queries if q.get('files'))}</p>
+        </div>
+        
+        <div class="risk-summary">
+            <div class="risk-card risk-critical">
+                <h3>🔴 Critical</h3>
+                <div class="risk-count">{risk_summary['critical']}</div>
+            </div>
+            <div class="risk-card risk-high">
+                <h3>🟠 High</h3>
+                <div class="risk-count">{risk_summary['high']}</div>
+            </div>
+            <div class="risk-card risk-medium">
+                <h3>🟡 Medium</h3>
+                <div class="risk-count">{risk_summary['medium']}</div>
+            </div>
+            <div class="risk-card risk-low">
+                <h3>🟢 Low</h3>
+                <div class="risk-count">{risk_summary['low']}</div>
+            </div>
+            <div class="risk-card risk-minimal">
+                <h3>⚪ Minimal</h3>
+                <div class="risk-count">{risk_summary['minimal']}</div>
+            </div>
+        </div>
+        
+        <div class="cost-highlight">
+            <h3>💰 Financial Impact</h3>
+            <p><strong>Total Estimated Cost of Inaction:</strong> ${total_estimated_cost:,.0f}</p>
+            <p><strong>Priority:</strong> Focus on Critical and High business risk findings first</p>
+        </div>
+        
+        <div class="risk-matrix">
+            <h3>📋 Risk Matrix</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                    <th style="border: 1px solid #ddd; padding: 8px;">Impact/Likelihood</th>
+                    <th style="border: 1px solid #ddd; padding: 8px;">Very High</th>
+                    <th style="border: 1px solid #ddd; padding: 8px;">High</th>
+                    <th style="border: 1px solid #ddd; padding: 8px;">Medium</th>
+                    <th style="border: 1px solid #ddd; padding: 8px;">Low</th>
+                    <th style="border: 1px solid #ddd; padding: 8px;">Very Low</th>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">Critical</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #e74c3c; color: white;">🔴 Critical</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #e74c3c; color: white;">🔴 Critical</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #f39c12; color: white;">🟠 High</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #3498db; color: white;">🟡 Medium</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #27ae60; color: white;">🟢 Low</td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">High</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #e74c3c; color: white;">🔴 Critical</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #f39c12; color: white;">🟠 High</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #f39c12; color: white;">🟠 High</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #3498db; color: white;">🟡 Medium</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #27ae60; color: white;">🟢 Low</td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">Medium</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #f39c12; color: white;">🟠 High</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #3498db; color: white;">🟡 Medium</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #3498db; color: white;">🟡 Medium</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #27ae60; color: white;">🟢 Low</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #95a5a6; color: white;">⚪ Minimal</td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">Low</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #3498db; color: white;">🟡 Medium</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #27ae60; color: white;">🟢 Low</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #27ae60; color: white;">🟢 Low</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #95a5a6; color: white;">⚪ Minimal</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #95a5a6; color: white;">⚪ Minimal</td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">Minimal</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #27ae60; color: white;">🟢 Low</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #95a5a6; color: white;">⚪ Minimal</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #95a5a6; color: white;">⚪ Minimal</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #95a5a6; color: white;">⚪ Minimal</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #95a5a6; color: white;">⚪ Minimal</td>
+                </tr>
+            </table>
+        </div>
+"""
+    
+    for query in queries:
+        query_name = query.get("query_name", "Unknown Query")
+        severity = query.get("severity", "UNKNOWN")
+        description = query.get("description", "No description available")
+        files = query.get("files", [])
+        ai_explanation = query.get("ai_explanation", "No AI explanation available")
+        risk_assessment = query.get("risk_assessment", {})
+        
+        business_risk = risk_assessment.get("business_risk", "Medium")
+        risk_class = f"risk-{business_risk.lower()}"
+        
+        html_content += f"""
+        <h2 class="{risk_class}">🔍 {query_name}</h2>
+        <p><strong>Technical Severity:</strong> {severity}</p>
+        <p><strong>Business Risk:</strong> <span class="{risk_class}">{business_risk}</span></p>
+        <p><strong>Description:</strong> {description}</p>
+        
+        <div class="risk-assessment">
+            <h3>📊 Business Risk Assessment</h3>
+            <p><strong>Impact:</strong> {risk_assessment.get('impact', 'Unknown')} - {risk_assessment.get('impact_description', '')}</p>
+            <p><strong>Likelihood:</strong> {risk_assessment.get('likelihood', 'Unknown')} - {risk_assessment.get('likelihood_description', '')}</p>
+            <p><strong>Remediation Priority:</strong> {risk_assessment.get('remediation_priority', 'Medium')}</p>
+            <p><strong>Estimated Cost:</strong> {risk_assessment.get('cost_estimate', 'Unknown')}</p>
+            <p><strong>Time to Fix:</strong> {risk_assessment.get('time_to_fix', 'Unknown')}</p>
+            <p><strong>Business Context:</strong> {risk_assessment.get('business_context', '')}</p>
+        </div>
+        
+        <div class="ai-explanation">
+            <h3>🤖 AI Explanation</h3>
+            <p>{ai_explanation.replace(chr(10), '<br>')}</p>
+        </div>
+"""
+        
+        if files:
+            html_content += f"""
+        <h3>📁 Affected Files ({len(files)})</h3>
+"""
+            
+            for file_finding in files:
+                file_name = file_finding.get("file_name", "Unknown file")
+                line_number = file_finding.get("line", "Unknown line")
+                issue = file_finding.get("issue", "No issue description")
+                ai_fix = file_finding.get("ai_fix", "No AI fix available")
+                
+                html_content += f"""
+        <div class="finding">
+            <h4>📄 {file_name}:{line_number}</h4>
+            <p><strong>Issue:</strong> {issue}</p>
+            
+            <div class="ai-fix">
+                <h5>🔧 AI Suggested Fix</h5>
+                <p>{ai_fix.replace(chr(10), '<br>')}</p>
+            </div>
+        </div>
+"""
+        else:
+            html_content += """
+        <p>✅ No security issues found for this query.</p>
+"""
+    
+    html_content += """
+    </div>
+</body>
+</html>
+"""
+    
+    try:
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write(html_content)
+        print(f"✅ HTML report generated: {output_path}")
+    except Exception as e:
+        print(f"❌ Error generating HTML report: {e}")
 
+def main():
+    """Main function for testing the explainer."""
+    # Example usage
+    results_path = "test_data/output/results.json"
+    
+    if not os.path.exists(results_path):
+        print(f"❌ Results file not found: {results_path}")
+        return
+    
+    results = load_kics_results(results_path)
+    queries = results.get("queries", [])
+    
+    if not queries:
+        print("No queries found in results.")
+        return
+    
+    print(f"🔍 Processing {len(queries)} queries...")
+    
+    enriched_queries = explain_findings(queries, "outputs/analysis/ai_security_report.html")
+    
+    print(f"✅ Processed {len(enriched_queries)} queries with AI explanations")
 
-def convert_md_to_html(md_file, html_file):
-    # This function is kept for backward compatibility but is no longer used
-    # The new generate_html_dashboard function creates a much better HTML report
-    pass
+if __name__ == "__main__":
+    main()
 

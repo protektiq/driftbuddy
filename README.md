@@ -1,475 +1,310 @@
-# 🛡️ DriftBuddy - AI-Powered Infrastructure Security Scanner
-
-DriftBuddy is an intelligent security scanner that combines the power of KICS (Keeping Infrastructure as Code Secure) with OpenAI's GPT-4 to provide comprehensive, AI-enhanced security analysis for your Infrastructure as Code (IaC) files.
-
-## ✨ Features
-
-- **🔍 Comprehensive Scanning**: Supports Terraform, AWS CloudFormation, Kubernetes, Docker, Azure Bicep, and more
-- **🤖 AI-Powered Explanations**: Uses OpenAI GPT-4 to provide detailed, actionable explanations for each security finding
-- **📊 Beautiful Reports**: Generates both HTML dashboards and markdown reports with timestamped filenames
-- **🔄 CI/CD Integration**: Ready-to-use GitHub Actions workflows for automated security scanning
-- **🎯 Smart Filtering**: Focuses on relevant file types and provides intelligent path-based scanning
-- **🛡️ Graceful Error Handling**: Robust error handling for missing dependencies, API issues, and invalid files
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-1. **Python 3.8+** installed on your system
-2. **KICS** - Download from [kics.io](https://kics.io/) or use Docker
-3. **OpenAI API Key** - Get one from [OpenAI Platform](https://platform.openai.com/)
-
-### Installation
-
-1. **Clone or download DriftBuddy**:
-   ```bash
-   git clone <repository-url>
-   cd driftbuddy
-   ```
-
-2. **Install Python dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. **Set up your OpenAI API key**:
-   ```bash
-   export OPENAI_API_KEY="your-api-key-here"
-   # Or create a .env file:
-   echo "OPENAI_API_KEY=your-api-key-here" > .env
-   ```
-
-4. **Install KICS** (choose one method):
-   ```bash
-   # Method 1: Download binary
-   curl -L https://github.com/Checkmarx/kics/releases/latest/download/kics_linux_amd64.tar.gz -o kics.tar.gz
-   tar -xzf kics.tar.gz
-   sudo mv kics /usr/local/bin/
-   
-   # Method 2: Use Docker
-   docker pull checkmarx/kics:latest
-   ```
-
-### Basic Usage
-
-```bash
-# Scan a directory
-python driftbuddy.py ./terraform-code --all
-
-# Scan a specific file
-python driftbuddy.py ./main.tf --html
-
-# Generate only markdown report
-python driftbuddy.py ./terraform-code --md
-
-# Save reports to custom directory
-python driftbuddy.py ./terraform-code --all --reports-dir ./security-reports
-```
-
-## 🔄 GitHub Actions Integration
-
-DriftBuddy includes ready-to-use GitHub Actions workflows for automated security scanning in your CI/CD pipeline.
-
-### Quick Setup
-
-1. **Run the setup script** (if you have DriftBuddy in your repository):
-   ```bash
-   bash scripts/setup-github-actions.sh
-   ```
-
-2. **Add your OpenAI API key to GitHub Secrets**:
-   - Go to your repository → Settings → Secrets and variables → Actions
-   - Click "New repository secret"
-   - Name: `OPENAI_API_KEY`
-   - Value: Your OpenAI API key
-
-3. **Commit and push the changes**:
-   ```bash
-   git add .github/workflows/ requirements.txt
-   git commit -m "Add DriftBuddy GitHub Actions workflows"
-   git push
-   ```
-
-### Available Workflows
-
-#### 1. Basic Workflow (`.github/workflows/driftbuddy-basic.yml`)
-- **Triggers**: Push to main, Pull requests to main, Manual dispatch
-- **Features**: Simple scanning of entire repository
-- **Output**: Uploads security reports as artifacts
-
-#### 2. Advanced Workflow (`.github/workflows/driftbuddy-scan.yml`)
-- **Triggers**: Push/PR with IaC file changes, Manual dispatch with options
-- **Features**: 
-  - Path-based triggering (only runs when IaC files change)
-  - PR comments with findings summary
-  - Configurable scan paths and report formats
-  - Detailed artifact uploads
-
-### Manual Workflow Dispatch
-
-You can manually trigger scans with custom parameters:
-
-1. Go to your repository → Actions
-2. Select "DriftBuddy Security Scan"
-3. Click "Run workflow"
-4. Configure:
-   - **scan_path**: Directory to scan (default: `.`)
-   - **report_format**: `all`, `html`, or `md`
-
-### Workflow Features
-
-#### Automatic PR Comments
-When security issues are found in pull requests, the workflow automatically comments with:
-- Summary of findings
-- Links to detailed reports
-- Actionable next steps
-
-#### Smart Path Filtering
-The advanced workflow only runs when relevant files change:
-- `**/*.tf` (Terraform)
-- `**/*.yaml`, `**/*.yml` (Kubernetes, CloudFormation)
-- `**/*.json` (CloudFormation, ARM templates)
-- `**/*.bicep` (Azure Bicep)
-- `**/*.dockerfile`, `**/Dockerfile` (Docker)
-
-#### Artifact Management
-- Reports are uploaded as GitHub artifacts
-- 30-day retention period
-- Easy download and review
-
-### Customizing Workflows
-
-#### Modify Scan Paths
-Edit `.github/workflows/driftbuddy-scan.yml`:
-```yaml
-on:
-  push:
-    branches: [ main, develop ]
-    paths:
-      - '**/*.tf'          # Add your file patterns
-      - '**/*.yaml'
-      - '**/terraform/**'   # Custom directories
-```
-
-#### Change Report Formats
-Modify the scan command:
-```yaml
-- name: Run DriftBuddy Security Scan
-  run: |
-    python driftbuddy.py . --html --reports-dir ./security-reports
-```
-
-#### Add Custom Branches
-```yaml
-on:
-  push:
-    branches: [ main, develop, feature/* ]
-  pull_request:
-    branches: [ main, develop ]
-```
-
-### Example Workflow Output
-
-```
-🔍 DriftBuddy Security Scan Results
-
-Total Findings: 5
-
-⚠️ Security issues detected! Please review the detailed reports.
-
-📊 Reports Generated:
-- HTML Dashboard: Available in artifacts
-- Markdown Report: Available in artifacts
-
-💡 Next Steps:
-1. Download the security reports from the artifacts
-2. Review and address any security findings
-3. Re-run the scan after fixes to verify resolution
-
-🔗 View Reports: Check the "driftbuddy-security-reports" artifacts in this workflow run.
-```
-
-## 📊 Report Formats
-
-### HTML Dashboard
-- **File**: `driftbuddy_security_dashboard_YYYYMMDD_HHMMSS.html`
-- **Features**: 
-  - Interactive dashboard with severity grouping
-  - Color-coded severity badges
-  - Sticky table of contents
-  - Responsive design
-  - Summary cards with findings counts
-
-### Markdown Report
-- **File**: `driftbuddy_security_report_YYYYMMDD_HHMMSS.md`
-- **Features**:
-  - Detailed findings grouped by severity
-  - AI-generated explanations and fixes
-  - Links to official documentation
-  - Timestamp and scan summary
-
-## 🔍 Supported Infrastructure Formats
-
-DriftBuddy supports scanning the following IaC formats:
-
-| Format | Extensions | Examples |
-|--------|------------|----------|
-| **Terraform** | `.tf`, `.tfvars` | AWS, Azure, GCP resources |
-| **Kubernetes** | `.yaml`, `.yml` | Pods, Services, ConfigMaps |
-| **Docker** | `Dockerfile`, `.dockerfile` | Container configurations |
-| **AWS CloudFormation** | `.yaml`, `.yml`, `.json` | AWS infrastructure |
-| **Azure Bicep** | `.bicep` | Azure resources |
-| **Google Cloud** | `.yaml`, `.yml` | GCP deployment manager |
-
-## 🚨 Security Severity Levels
-
-DriftBuddy categorizes findings by severity:
-
-| Level | Color | Description |
-|-------|-------|-------------|
-| **CRITICAL** | 🔴 Red | Immediate security risks requiring urgent attention |
-| **HIGH** | 🟠 Orange | Significant security vulnerabilities |
-| **MEDIUM** | 🔵 Blue | Moderate security concerns |
-| **LOW** | 🟢 Green | Minor security issues or best practices |
-| **INFO** | ⚪ Gray | Informational findings |
-
-## 📁 Project Structure
-
-```
-driftbuddy/
-├── driftbuddy.py              # Main CLI application
-├── agent/
-│   └── explainer.py           # AI explanation engine
-├── .github/
-│   └── workflows/             # GitHub Actions workflows
-│       ├── driftbuddy-basic.yml
-│       └── driftbuddy-scan.yml
-├── scripts/
-│   ├── run_kics.sh           # Docker KICS runner
-│   └── setup-github-actions.sh # GitHub Actions setup
-├── test_data/
-│   └── iac_example/          # Sample vulnerable IaC files
-├── requirements.txt           # Python dependencies
-└── README.md                 # This file
-```
-
-## ⚙️ Configuration
-
-### Environment Variables
-
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `OPENAI_API_KEY` | Your OpenAI API key | Yes |
-| `USE_DOCKER_KICS` | Use Docker KICS instead of local | No |
-
-### Command Line Options
-
-```bash
-python driftbuddy.py [SCAN_PATH] [OPTIONS]
-
-Options:
-  --html              Generate HTML dashboard
-  --md                Generate markdown report
-  --all               Generate all report formats
-  --output-dir DIR    KICS results directory (default: test_data/output)
-  --reports-dir DIR   Reports output directory (default: current directory)
-  --version           Show version information
-```
-
-## 🧪 Examples
-
-### Example 1: Basic Terraform Scan
-```bash
-# Scan a Terraform directory
-python driftbuddy.py ./terraform-infrastructure --all
-
-# Output:
-# 📊 HTML Dashboard: driftbuddy_security_dashboard_20241225_143052.html
-# 📄 Markdown Report: driftbuddy_security_report_20241225_143052.md
-```
-
-### Example 2: Kubernetes Security Scan
-```bash
-# Scan Kubernetes manifests
-python driftbuddy.py ./k8s-manifests --html --reports-dir ./security-reports
-
-# Output:
-# 📊 HTML Dashboard: ./security-reports/driftbuddy_security_dashboard_20241225_143052.html
-```
-
-### Example 3: GitHub Actions Integration
-```yaml
-# .github/workflows/security-scan.yml
-name: Security Scan
-on: [push, pull_request]
-jobs:
-  scan:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Run DriftBuddy
-        run: |
-          python driftbuddy.py . --all --reports-dir ./reports
-```
-
-## 🔧 Troubleshooting
-
-### Common Issues
-
-#### KICS Not Found
-```bash
-# Install KICS
-curl -L https://github.com/Checkmarx/kics/releases/latest/download/kics_linux_amd64.tar.gz -o kics.tar.gz
-tar -xzf kics.tar.gz
-sudo mv kics /usr/local/bin/
-```
-
-#### OpenAI API Key Issues
-```bash
-# Set API key
-export OPENAI_API_KEY="your-key-here"
-
-# Or use .env file
-echo "OPENAI_API_KEY=your-key-here" > .env
-```
-
-#### Docker KICS Alternative
-```bash
-# Use Docker if local KICS fails
-docker run --rm -v $(pwd):/path checkmarx/kics:latest scan -p /path
-```
-
-### Error Messages
-
-| Error | Solution |
-|-------|----------|
-| `KICS executable not found` | Install KICS or use Docker |
-| `OPENAI_API_KEY not found` | Set your OpenAI API key |
-| `No security issues found` | This is normal - your code is secure! |
-| `Invalid scan path` | Check that the path exists and contains IaC files |
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-### Development Setup
-
+# 🔒 DriftBuddy - Infrastructure Security Scanner with Business Risk Assessment
+
+**Enterprise-ready infrastructure security scanner with AI-powered explanations and comprehensive business risk assessment.**
+
+## 🚀 Features
+
+### 🔍 **Security Scanning**
+- **KICS Integration**: Advanced Infrastructure as Code security scanning
+- **Multi-format Support**: Terraform, Kubernetes, Docker, CloudFormation, and more
+- **Real-time Analysis**: Instant vulnerability detection and assessment
+
+### 📊 **Business Risk Assessment**
+- **Impact Analysis**: Evaluates potential business consequences
+- **Likelihood Assessment**: Determines probability of exploitation
+- **Risk Matrix**: Visual risk prioritization (Critical, High, Medium, Low, Minimal)
+- **Cost Estimation**: Financial impact analysis of security findings
+- **Remediation Priority**: Business-focused action recommendations
+
+### 🤖 **AI-Powered Insights**
+- **Intelligent Explanations**: Context-aware security issue descriptions
+- **Business Context**: Explains technical findings in business terms
+- **Specific Fixes**: Code-level remediation suggestions
+- **Cost-Benefit Analysis**: Justifies security investments
+
+### 📈 **Comprehensive Reporting**
+- **Multiple Formats**: Markdown, HTML, and JSON reports
+- **Risk Visualization**: Color-coded risk matrix and summaries
+- **Executive Summary**: Business-focused security overview
+- **Actionable Recommendations**: Prioritized remediation steps
+
+## 🎯 **Business Value**
+
+### **For Security Teams**
+- Prioritize findings by business impact, not just technical severity
+- Understand the "why" behind security recommendations
+- Get specific, actionable fixes with business justification
+
+### **For Business Stakeholders**
+- See security findings in business terms (cost, reputation, compliance)
+- Understand financial impact of security risks
+- Make informed decisions about security investments
+
+### **For Development Teams**
+- Get clear, contextual explanations of security issues
+- Receive specific code fixes with business context
+- Understand the business impact of security decisions
+
+## 📦 Installation
+
+### **Prerequisites**
+- Python 3.8+
+- KICS (Keeping Infrastructure as Code Secure)
+
+### **Quick Start**
 ```bash
 # Clone the repository
-git clone <repository-url>
+git clone https://github.com/your-org/driftbuddy.git
 cd driftbuddy
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Set up pre-commit hooks
-pip install pre-commit
+# Install KICS (if not already installed)
+# Visit: https://kics.io/
+```
+
+### **API Key Setup**
+```bash
+# Option 1: Environment variable
+export OPENAI_API_KEY="your-api-key-here"
+
+# Option 2: .env file
+echo "OPENAI_API_KEY=your-api-key-here" > .env
+
+# Option 3: Interactive setup
+make setup-api-key
+```
+
+## 🚀 Usage
+
+### **Basic Scan**
+```bash
+# Scan infrastructure code
+python driftbuddy.py --scan-path ./terraform
+
+# With AI explanations and business risk assessment
+python driftbuddy.py --scan-path ./terraform --enable-ai
+```
+
+### **Advanced Usage**
+```bash
+# Generate HTML report with business risk assessment
+python driftbuddy.py --scan-path ./k8s --output-format html --enable-ai
+
+# Generate JSON report for integration
+python driftbuddy.py --scan-path ./docker --output-format json
+
+# Custom output directory
+python driftbuddy.py --scan-path ./cloudformation --output-dir ./reports
+```
+
+### **Docker Usage**
+```bash
+# Run with Docker
+docker run -v $(pwd):/workspace driftbuddy/driftbuddy \
+  --scan-path /workspace/terraform --enable-ai
+
+# With Docker Compose
+docker-compose up
+```
+
+## 📊 **Business Risk Assessment**
+
+### **Risk Matrix**
+DriftBuddy uses a comprehensive risk matrix that considers:
+
+| Impact/Likelihood | Very High | High | Medium | Low | Very Low |
+|------------------|-----------|------|--------|-----|----------|
+| **Critical** | 🔴 Critical | 🔴 Critical | 🟠 High | 🟡 Medium | 🟢 Low |
+| **High** | 🔴 Critical | 🟠 High | 🟠 High | 🟡 Medium | 🟢 Low |
+| **Medium** | 🟠 High | 🟡 Medium | 🟡 Medium | �� Low | ⚪ Minimal |
+| **Low** | 🟡 Medium | 🟢 Low | 🟢 Low | ⚪ Minimal | ⚪ Minimal |
+| **Minimal** | 🟢 Low | ⚪ Minimal | ⚪ Minimal | ⚪ Minimal | ⚪ Minimal |
+
+### **Business Context Examples**
+
+#### **Critical Business Risk**
+- **AWS S3 Public Access**: Data breach, regulatory fines, reputation damage
+- **Database Public Access**: Complete data compromise, compliance violations
+- **Terraform State Exposure**: Infrastructure compromise, credential theft
+
+#### **High Business Risk**
+- **IAM Password Access**: Account compromise, unauthorized access
+- **Security Group Open Ports**: Network compromise, lateral movement
+- **EC2 Public IP**: Direct attack surface, data breach
+
+#### **Medium Business Risk**
+- **Lambda Public Access**: Code execution, service disruption
+- **Container Root User**: Container escape, host compromise
+- **Missing Logging**: Compliance issues, audit failures
+
+### **Financial Impact Analysis**
+- **Cost Estimation**: Realistic cost ranges for incident response
+- **Time to Fix**: Estimated remediation effort
+- **Priority Recommendations**: Business-focused action plans
+
+## 📋 **Output Examples**
+
+### **Console Output**
+```
+🔍 DriftBuddy - Infrastructure Security Scanner
+==================================================
+🔍 Starting KICS infrastructure scan...
+📁 Scanning path: ./terraform
+✅ KICS scan completed successfully
+📊 Found 15 security queries
+🔍 Total findings: 8
+
+🤖 Generating AI explanations and business risk assessment...
+📊 Business Risk Summary:
+   🔴 Critical: 2
+   🟠 High: 3
+   🟡 Medium: 2
+   🟢 Low: 1
+   ⚪ Minimal: 0
+💰 Total Estimated Cost: $125,000
+
+📝 Generating report...
+✅ Markdown report generated: outputs/reports/driftbuddy_report_20250125_143022.md
+
+🎉 Scan completed successfully!
+📁 Report saved to: outputs/reports/driftbuddy_report_20250125_143022.md
+
+🚨 CRITICAL BUSINESS RISK DETECTED!
+   Immediate action required for critical findings.
+```
+
+### **Report Features**
+- **Executive Summary**: Business-focused overview
+- **Risk Matrix**: Visual risk assessment
+- **Detailed Findings**: Technical and business context
+- **AI Explanations**: Intelligent issue descriptions
+- **Specific Fixes**: Code-level remediation
+- **Cost Analysis**: Financial impact assessment
+- **Action Plans**: Prioritized remediation steps
+
+## 🔧 **Configuration**
+
+### **Environment Variables**
+```bash
+# OpenAI Configuration
+OPENAI_API_KEY=your-api-key
+OPENAI_MODEL=gpt-4
+OPENAI_MAX_TOKENS=2000
+
+# KICS Configuration
+KICS_PATH=/usr/local/bin/kics
+KICS_QUERIES_PATH=/path/to/queries
+
+# Output Configuration
+OUTPUT_DIR=outputs/reports
+ENABLE_AI_EXPLANATIONS=true
+
+# Security Configuration
+ENABLE_DEMO_MODE=false
+DEMO_OPENAI_API_KEY=sk-demo-key
+```
+
+### **Configuration File**
+Create a `.env` file in your project root:
+```env
+# OpenAI Settings
+OPENAI_API_KEY=your-api-key-here
+OPENAI_MODEL=gpt-4
+OPENAI_MAX_TOKENS=2000
+
+# Feature Flags
+ENABLE_AI_EXPLANATIONS=true
+ENABLE_BUSINESS_RISK_ASSESSMENT=true
+
+# Output Settings
+OUTPUT_DIR=outputs/reports
+REPORT_FORMAT=markdown
+
+# Security Settings
+ENABLE_DEMO_MODE=false
+```
+
+## 🏗️ **Project Structure**
+
+```
+driftbuddy/
+├── src/driftbuddy/
+│   ├── core.py              # Main application logic
+│   ├── config.py            # Configuration management
+│   ├── risk_assessment.py   # Business risk assessment
+│   └── exceptions.py        # Error handling
+├── src/agent/
+│   └── explainer.py         # AI explanation agent
+├── scripts/
+│   ├── setup_api_key.py     # API key setup
+│   └── security_scan.py     # Security checks
+├── outputs/
+│   ├── reports/             # Generated reports
+│   └── analysis/            # Analysis results
+├── test_data/
+│   └── iac_example/         # Test infrastructure
+├── docs/                    # Documentation
+├── tests/                   # Test suite
+└── examples/                # Usage examples
+```
+
+## 🧪 **Testing**
+
+### **Run Tests**
+```bash
+# Run all tests
+pytest
+
+# Run with coverage
+pytest --cov=src/driftbuddy
+
+# Run specific test
+pytest tests/test_risk_assessment.py
+```
+
+### **Test Infrastructure**
+```bash
+# Test with sample infrastructure
+python driftbuddy.py --scan-path ./test_data/iac_example --enable-ai
+```
+
+## 🤝 **Contributing**
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+### **Development Setup**
+```bash
+# Clone and setup
+git clone https://github.com/your-org/driftbuddy.git
+cd driftbuddy
+
+# Install development dependencies
+pip install -r requirements.txt
+pip install -r requirements-dev.txt
+
+# Setup pre-commit hooks
 pre-commit install
 
 # Run tests
-python -m pytest tests/
+pytest
 ```
 
-## 📄 License
+## 📄 **License**
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+## 🆘 **Support**
 
-- **KICS** - The underlying security scanning engine
-- **OpenAI** - For providing the AI explanation capabilities
-- **GitHub Actions** - For the CI/CD integration framework
+- **Documentation**: [docs/](docs/)
+- **Issues**: [GitHub Issues](https://github.com/your-org/driftbuddy/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/your-org/driftbuddy/discussions)
+
+## 🔄 **Changelog**
+
+See [CHANGELOG.md](CHANGELOG.md) for a complete list of changes and version history.
 
 ---
 
-**Made with ❤️ for secure infrastructure**
-
-## ☁️ Cloud Infrastructure Scanning with Steampipe
-
-DriftBuddy now supports **cloud infrastructure scanning** using Steampipe, allowing you to query real cloud infrastructure as if it were a database. This enables detection of:
-
-- **🚨 Security Misconfigurations** in live cloud resources
-- **👻 Shadow Resources** (unmanaged infrastructure)
-- **🔄 Infrastructure Drift** between IaC and actual cloud state
-- **💰 Cost Optimization** opportunities
-
-### Quick Start with Cloud Scanning
-
-```bash
-# Install Steampipe
-curl -s -L https://steampipe.io/install.sh | sh
-
-# Install cloud provider plugins
-steampipe plugin install aws
-steampipe plugin install azure
-steampipe plugin install gcp
-
-# Run cloud security scan
-python driftbuddy.py --cloud aws --scan-type security
-
-# Scan for shadow resources
-python driftbuddy.py --cloud aws --scan-type shadow
-
-# Detect infrastructure drift
-python driftbuddy.py --cloud aws --scan-type drift
-
-# Run all scan types
-python driftbuddy.py --cloud aws --all-scans
-```
-
-### Supported Cloud Providers
-
-- **AWS** - S3, IAM, EC2, RDS, Security Groups, and more
-- **Azure** - Storage Accounts, Virtual Machines, Network Security Groups
-- **GCP** - Storage Buckets, Compute Instances, IAM, Firewall Rules
-- **Kubernetes** - Pods, Services, ConfigMaps, Secrets
-
-### Scan Types
-
-#### **Security Scan** (`--scan-type security`)
-Detects security misconfigurations in cloud infrastructure:
-- Public S3 buckets and storage accounts
-- Overly permissive IAM policies and roles
-- Open security groups and firewall rules
-- Insecure Kubernetes configurations
-
-#### **Shadow Resources** (`--scan-type shadow`)
-Identifies unmanaged infrastructure:
-- Resources created manually (not via IaC)
-- Old or unused resources
-- Resources without proper tagging
-- Orphaned resources
-
-#### **Drift Detection** (`--scan-type drift`)
-Compares IaC with actual cloud state:
-- Missing resources (in IaC but not in cloud)
-- Extra resources (in cloud but not in IaC)
-- Configuration differences
-
-### Combined Scanning
-
-You can run both IaC and cloud scanning together:
-
-```bash
-# Scan IaC files AND cloud infrastructure
-python driftbuddy.py ./terraform-code --all --cloud aws --scan-type security
-
-# Generate all reports for both
-python driftbuddy.py ./terraform-code --all --cloud aws --all-scans --reports-dir ./reports
-```
-
-### Cloud Scanning Reports
-
-Cloud scans generate detailed reports including:
-- **Security Issues Found** with severity levels
-- **Shadow Resources** with creation dates
-- **Drift Analysis** with resource comparisons
-- **Recommendations** for remediation
-
-For detailed setup instructions, see [STEAMPIPE_SETUP.md](STEAMPIPE_SETUP.md).
-
-## 🛡️ Security Scanning Features
+**🔒 Secure your infrastructure with business intelligence.**

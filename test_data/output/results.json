@@ -20,11 +20,10 @@
 	},
 	"total_counter": 4,
 	"total_bom_resources": 0,
-	"start": "2025-07-25T21:59:29.680846187-07:00",
-	"end": "2025-07-25T22:00:02.865805854-07:00",
+	"start": "2025-07-26T13:57:55.496772492-07:00",
+	"end": "2025-07-26T13:58:27.757021644-07:00",
 	"paths": [
-		"./test_data/iac_example/main.tf",
-		"kics/assets/queries"
+		"test_data/iac_example/main"
 	],
 	"queries": [
 		{
@@ -41,8 +40,8 @@
 			"description_id": "d535387f",
 			"files": [
 				{
-					"file_name": "./test_data/iac_example/main.tf",
-					"similarity_id": "8fa9acb9ba945b5ccdbab4dc9de60fb62aee03c59c448c371337c07abd8df57a",
+					"file_name": "test_data/iac_example/main/main.tf",
+					"similarity_id": "29189339b3c5edd01513144ffeb0d75cac4246414a91fe640148199fe0916181",
 					"line": 3,
 					"resource_type": "aws_s3_bucket",
 					"resource_name": "driftbuddy-test-bucket",
@@ -69,8 +68,8 @@
 			"description_id": "fa5c7c72",
 			"files": [
 				{
-					"file_name": "./test_data/iac_example/main.tf",
-					"similarity_id": "ba3830d32bdd680ccb2ec8beb05ce12e9700bf59b9b7c752bdde949e17b39d38",
+					"file_name": "test_data/iac_example/main/main.tf",
+					"similarity_id": "ba279155b743702c6b33f8bf137d431c285f006822969b93c93a51d6bbd0bace",
 					"line": 1,
 					"resource_type": "aws_s3_bucket",
 					"resource_name": "driftbuddy-test-bucket",
@@ -97,8 +96,8 @@
 			"description_id": "7614ce3b",
 			"files": [
 				{
-					"file_name": "./test_data/iac_example/main.tf",
-					"similarity_id": "2ee7df2eb20367b35b1663edfc70c97e508ccc6adf6714e3536be708a84445ea",
+					"file_name": "test_data/iac_example/main/main.tf",
+					"similarity_id": "494d888d95380137c687b6333a808e838d8e5bf94149c728035e430fa722c4ee",
 					"line": 1,
 					"resource_type": "aws_s3_bucket",
 					"resource_name": "driftbuddy-test-bucket",
@@ -125,8 +124,8 @@
 			"description_id": "d03e85ae",
 			"files": [
 				{
-					"file_name": "./test_data/iac_example/main.tf",
-					"similarity_id": "aa346cd1642a83b40e221f96a43d88dbfacecdf1f8e5314c24145f8d35530197",
+					"file_name": "test_data/iac_example/main/main.tf",
+					"similarity_id": "0a7d0464de505a54720d6002d14a22a32e6b20bb8189d444ab621d8ab838304f",
 					"line": 1,
 					"resource_type": "n/a",
 					"resource_name": "n/a",

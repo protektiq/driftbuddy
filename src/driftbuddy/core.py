@@ -5,7 +5,7 @@ import argparse
 import json
 from pathlib import Path
 from datetime import datetime
-from agent.explainer import load_kics_results, explain_findings
+from src.agent.explainer import load_kics_results, explain_findings
 from typing import Dict
 from .config import get_config
 from .exceptions import DriftBuddyError, handle_exception
@@ -147,25 +147,14 @@ def run_kics(scan_path, output_dir="test_data/output"):
             print("⚠️ Local KICS test failed, trying Docker...")
             use_docker = True
     
-    # Force Docker usage if local KICS has query issues
+    # Skip the test scan and go directly to using local KICS if available
     if not use_docker:
-        print("🔍 Testing local KICS query availability...")
-        test_scan_cmd = ["kics", "scan", "-p", str(scan_path), "--output-path", str(output_dir), "--output-name", "test", "--report-formats", "json"]
-        try:
-            result = subprocess.run(test_scan_cmd, capture_output=True, text=True, timeout=30)
-            if "unable to find queries" in result.stderr or result.returncode != 0:
-                print("⚠️ Local KICS has query issues, switching to Docker...")
-                use_docker = True
-        except:
-            print("⚠️ Local KICS test scan failed, switching to Docker...")
-            use_docker = True
-    
-    if use_docker:
+        print("💡 Using local KICS installation")
+        return run_kics_local(scan_path, output_dir)
+    else:
         if not check_docker_kics():
             return False, "Neither local KICS nor Docker KICS is available"
         return run_kics_docker(scan_path, output_dir)
-    else:
-        return run_kics_local(scan_path, output_dir)
 
 @handle_exception
 def run_kics_docker(scan_path, output_dir):
@@ -222,45 +211,12 @@ def run_kics_local(scan_path, output_dir):
             "-p", str(scan_path),
             "--output-path", str(output_dir),
             "--output-name", "results",
-            "--report-formats", "json"
+            "--report-formats", "json",
+            "--silent"  # Suppress verbose output
         ]
         
-            # Use the queries path from the kics directory if it exists
-    kics_queries_path = Path("kics/assets/queries")
-    if kics_queries_path.exists():
-        kics_cmd.extend(["--queries-path", str(kics_queries_path)])
-        print(f"📁 Using KICS queries from: {kics_queries_path}")
-    elif use_queries_path and config.settings.kics_queries_path and os.path.exists(config.settings.kics_queries_path):
-        kics_cmd.extend(["--queries-path", config.settings.kics_queries_path])
-        print(f"📁 Using custom queries path: {config.settings.kics_queries_path}")
-    else:
-        # Try to create a symlink to the kics queries if they exist
-        try:
-            if Path("kics/assets/queries").exists():
-                # Create assets directory if it doesn't exist
-                assets_dir = Path("assets")
-                assets_dir.mkdir(exist_ok=True)
-                
-                # Create symlink from assets/queries to kics/assets/queries
-                queries_link = assets_dir / "queries"
-                if not queries_link.exists():
-                    if os.name == 'nt':  # Windows
-                        # On Windows, we need to use junction or copy
-                        import shutil
-                        shutil.copytree("kics/assets/queries", "assets/queries", dirs_exist_ok=True)
-                    else:  # Unix/Linux
-                        queries_link.symlink_to(Path("kics/assets/queries").resolve())
-                
-                if queries_link.exists():
-                    kics_cmd.extend(["--queries-path", str(queries_link)])
-                    print(f"📁 Using KICS queries via symlink: {queries_link}")
-                else:
-                    print("💡 Using KICS default queries")
-            else:
-                print("💡 Using KICS default queries")
-        except Exception as e:
-            print(f"⚠️ Could not create queries symlink: {e}")
-            print("💡 Using KICS default queries")
+        # Don't specify --queries-path to use KICS built-in queries
+        print("💡 Using KICS built-in queries")
         
         print(f"🚀 Running: {' '.join(kics_cmd)}")
         
@@ -690,7 +646,7 @@ Examples:
             sys.exit(1)
         
         # Load results from the generated file
-        results_path = f"{args.output_dir}/results.json"
+        results_path = "test_data/output/results.json"
         queries = load_kics_results_safe(results_path)
         if not queries:
             print("⚠️ No queries found in KICS results")
@@ -714,8 +670,16 @@ Examples:
             
             for query in queries:
                 risk_assessment = query.get("risk_assessment", {})
-                business_risk = risk_assessment.get("business_risk", "Medium").lower()
-                risk_summary[business_risk] += 1
+                business_risk = risk_assessment.get("business_risk", "Medium")
+                
+                # Ensure business_risk is a string (handle cases where it might be a tuple or other type)
+                if isinstance(business_risk, (tuple, list)):
+                    business_risk = str(business_risk[0]) if business_risk else "Medium"
+                elif not isinstance(business_risk, str):
+                    business_risk = str(business_risk)
+                
+                business_risk_lower = business_risk.lower()
+                risk_summary[business_risk_lower] += 1
                 
                 # Calculate cost
                 cost_str = risk_assessment.get("cost_estimate", "$0")

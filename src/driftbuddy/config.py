@@ -44,6 +44,11 @@ class Settings(BaseSettings):
     use_demo_key_fallback: bool = Field(default=True, env="USE_DEMO_KEY_FALLBACK")
     ai_explanation_limit_per_day: int = Field(default=100, env="AI_EXPLANATION_LIMIT_PER_DAY")
     
+    # AI performance settings
+    ai_max_concurrent_requests: int = Field(default=3, env="AI_MAX_CONCURRENT_REQUESTS")
+    ai_request_timeout: int = Field(default=60, env="AI_REQUEST_TIMEOUT")
+    ai_batch_size: int = Field(default=5, env="AI_BATCH_SIZE")
+    
     # KICS configuration
     kics_timeout: int = Field(default=300, env="KICS_TIMEOUT")
     kics_output_dir: str = Field(default="test_data/output", env="KICS_OUTPUT_DIR")

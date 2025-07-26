@@ -5,8 +5,11 @@ Provides detailed, actionable explanations of security issues with business risk
 
 import json
 import os
+import asyncio
+import time
 from datetime import datetime
 from typing import Dict, List, Any, Optional
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from openai import OpenAI
 from driftbuddy.config import get_config
 from driftbuddy.risk_assessment import RiskMatrix
@@ -34,9 +37,211 @@ def load_kics_results(results_path: str) -> Dict[str, Any]:
         print(f"❌ Invalid JSON in results file: {results_path}")
         return {}
 
+def batch_generate_explanations(client: OpenAI, queries: List[Dict], max_workers: int = 3) -> List[Dict]:
+    """
+    Generate AI explanations for multiple queries in parallel batches.
+    
+    Args:
+        client: OpenAI client instance
+        queries: List of query results from KICS
+        max_workers: Maximum number of concurrent API calls
+        
+    Returns:
+        List of queries with AI explanations and business risk assessment added
+    """
+    enriched_queries = []
+    
+    # Filter queries that have findings
+    queries_with_findings = [q for q in queries if q.get("files")]
+    queries_without_findings = [q for q in queries if not q.get("files")]
+    
+    print(f"🚀 Processing {len(queries_with_findings)} queries with findings using {max_workers} workers...")
+    
+    def process_single_query(query: Dict) -> Dict:
+        """Process a single query with all its findings in one API call."""
+        query_name = query.get("query_name", "Unknown Query")
+        severity = query.get("severity", "UNKNOWN")
+        description = query.get("description", "No description available")
+        files = query.get("files", [])
+        
+        # Ensure query_name is a string (handle cases where it might be a tuple or other type)
+        if isinstance(query_name, (tuple, list)):
+            query_name = str(query_name[0]) if query_name else "Unknown Query"
+        elif not isinstance(query_name, str):
+            query_name = str(query_name)
+        
+        # Ensure severity is a string
+        if not isinstance(severity, str):
+            severity = str(severity)
+        
+        # Ensure description is a string
+        if not isinstance(description, str):
+            description = str(description)
+        
+        print(f"🤖 Processing: {query_name} ({len(files)} findings)")
+        
+        # Get business risk assessment
+        risk_assessment = RiskMatrix.assess_risk(query_name, severity, description)
+        
+        # Create a comprehensive prompt that includes all findings for this query
+        findings_summary = ""
+        for i, file_finding in enumerate(files, 1):
+            file_name = file_finding.get("file_name", "Unknown file")
+            line_number = file_finding.get("line", "Unknown line")
+            issue = file_finding.get("issue", "No issue description")
+            findings_summary += f"\n{i}. File: {file_name}:{line_number}\n   Issue: {issue}\n"
+        
+        try:
+            # Single comprehensive prompt for the entire query
+            prompt = f"""
+            As a cybersecurity expert and business risk analyst, provide a comprehensive analysis for this security finding:
+            
+            Query: {query_name}
+            Technical Severity: {severity}
+            Description: {description}
+            Number of affected files: {len(files)}
+            
+            Business Risk Assessment:
+            - Impact: {risk_assessment.impact.value} - {risk_assessment.impact_description}
+            - Likelihood: {risk_assessment.likelihood.value} - {risk_assessment.likelihood_description}
+            - Business Risk: {risk_assessment.business_risk.value}
+            - Estimated Cost: {risk_assessment.cost_estimate}
+            - Time to Fix: {risk_assessment.time_to_fix}
+            
+            Affected Files and Issues:
+            {findings_summary}
+            
+            Provide a comprehensive response including:
+            1. **Technical Explanation**: What this security issue is and why it matters
+            2. **Business Impact**: How this affects operations, compliance, and reputation
+            3. **Attack Scenarios**: How this could be exploited by attackers
+            4. **Remediation Strategy**: 
+               - Overall approach to fixing this issue
+               - Specific code fixes for each affected file
+               - Implementation timeline and effort
+            5. **Business Justification**: Cost-benefit analysis and priority recommendations
+            6. **Risk Mitigation**: Additional security considerations
+            
+            Format your response with clear sections and actionable recommendations.
+            Focus on both technical accuracy and business value.
+            """
+            
+            start_time = time.time()
+            response = client.chat.completions.create(
+                model=config.settings.openai_model,
+                messages=[
+                    {"role": "system", "content": "You are a cybersecurity expert and business risk analyst providing clear, actionable security advice with business context. Provide comprehensive, well-structured responses."},
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=config.settings.openai_max_tokens,
+                temperature=0.3,
+                timeout=config.settings.ai_request_timeout
+            )
+            
+            api_time = time.time() - start_time
+            print(f"✅ {query_name}: API call completed in {api_time:.2f}s")
+            
+            ai_explanation = response.choices[0].message.content.strip()
+            
+            # Parse the AI response to extract fixes for individual files
+            # The AI will provide fixes in a structured format
+            file_fixes = parse_ai_response_for_fixes(ai_explanation, files)
+            
+            # Add AI explanation and risk assessment to query
+            query["ai_explanation"] = ai_explanation
+            query["risk_assessment"] = {
+                "impact": risk_assessment.impact.value,
+                "likelihood": risk_assessment.likelihood.value,
+                "business_risk_score": risk_assessment.business_risk_score,  # Add the calculated score
+                "business_risk": risk_assessment.business_risk.value[1],  # Get the string part of the tuple
+                "impact_description": risk_assessment.impact_description,
+                "likelihood_description": risk_assessment.likelihood_description,
+                "business_context": risk_assessment.business_context,
+                "remediation_priority": risk_assessment.remediation_priority,
+                "cost_estimate": risk_assessment.cost_estimate,
+                "time_to_fix": risk_assessment.time_to_fix
+            }
+            
+            # Add parsed fixes to file findings
+            for file_finding, fix in zip(files, file_fixes):
+                file_finding["ai_fix"] = fix
+            
+        except Exception as e:
+            print(f"⚠️ Error processing {query_name}: {e}")
+            query["ai_explanation"] = f"AI explanation generation failed: {str(e)}"
+            # Add default fixes for files
+            for file_finding in files:
+                file_finding["ai_fix"] = "AI fix generation failed"
+        
+        return query
+    
+    # Process queries in parallel with limited concurrency
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # Submit all queries for processing
+        future_to_query = {executor.submit(process_single_query, query): query for query in queries_with_findings}
+        
+        # Collect results as they complete
+        for future in as_completed(future_to_query):
+            query = future_to_query[future]
+            try:
+                enriched_query = future.result()
+                enriched_queries.append(enriched_query)
+            except Exception as e:
+                print(f"❌ Error processing query {query.get('query_name', 'Unknown')}: {e}")
+                enriched_queries.append(query)
+    
+    # Add queries without findings
+    enriched_queries.extend(queries_without_findings)
+    
+    return enriched_queries
+
+def parse_ai_response_for_fixes(ai_response: str, files: List[Dict]) -> List[str]:
+    """
+    Parse the AI response to extract specific fixes for each file.
+    
+    Args:
+        ai_response: The AI-generated explanation
+        files: List of file findings
+        
+    Returns:
+        List of fixes corresponding to each file
+    """
+    fixes = []
+    
+    # Simple parsing logic - look for file-specific sections
+    lines = ai_response.split('\n')
+    current_fix = ""
+    in_fix_section = False
+    
+    for line in lines:
+        line = line.strip()
+        
+        # Look for file-specific headers
+        if any(f"File:" in line and file.get("file_name", "") in line for file in files):
+            if current_fix:
+                fixes.append(current_fix.strip())
+            current_fix = line + "\n"
+            in_fix_section = True
+        elif in_fix_section and line:
+            current_fix += line + "\n"
+        elif in_fix_section and not line:
+            # Empty line might indicate end of fix section
+            pass
+    
+    # Add the last fix
+    if current_fix:
+        fixes.append(current_fix.strip())
+    
+    # Ensure we have a fix for each file
+    while len(fixes) < len(files):
+        fixes.append("Specific fix not found in AI response")
+    
+    return fixes[:len(files)]  # Ensure we don't have more fixes than files
+
 def explain_findings(queries: List[Dict], output_html: Optional[str] = None) -> List[Dict]:
     """
     Generate AI-powered explanations for security findings with business risk context.
+    Optimized for performance with parallel processing and reduced API calls.
     
     Args:
         queries: List of query results from KICS
@@ -54,144 +259,77 @@ def explain_findings(queries: List[Dict], output_html: Optional[str] = None) -> 
     
     client = OpenAI(api_key=api_key)
     
-    enriched_queries = []
+    # Use parallel processing with limited concurrency to avoid rate limits
+    max_workers = min(
+        config.settings.ai_max_concurrent_requests, 
+        len([q for q in queries if q.get("files")])
+    )
     
-    for query in queries:
-        query_name = query.get("query_name", "Unknown Query")
-        severity = query.get("severity", "UNKNOWN")
-        description = query.get("description", "No description available")
-        files = query.get("files", [])
-        
-        if not files:
-            # No findings for this query
-            enriched_queries.append(query)
-            continue
-        
-        print(f"🤖 Generating AI explanations for: {query_name}")
-        
-        # Get business risk assessment
-        risk_assessment = RiskMatrix.assess_risk(query_name, severity, description)
-        
-        # Generate AI explanation for the query with business context
-        try:
-            prompt = f"""
-            As a cybersecurity expert and business risk analyst, explain this security finding with business context:
-            
-            Query: {query_name}
-            Technical Severity: {severity}
-            Description: {description}
-            Number of affected files: {len(files)}
-            
-            Business Risk Assessment:
-            - Impact: {risk_assessment.impact.value} - {risk_assessment.impact_description}
-            - Likelihood: {risk_assessment.likelihood.value} - {risk_assessment.likelihood_description}
-            - Business Risk: {risk_assessment.business_risk.value}
-            - Estimated Cost: {risk_assessment.cost_estimate}
-            - Time to Fix: {risk_assessment.time_to_fix}
-            
-            Provide a comprehensive explanation including:
-            1. What this security issue is (technical explanation)
-            2. Why it's a business risk (impact on operations, compliance, reputation)
-            3. How it can be exploited (attack scenarios)
-            4. How to fix it (technical solution)
-            5. Business justification for fixing it (cost-benefit analysis)
-            6. Timeline and priority recommendations
-            
-            Make it clear and actionable for both technical teams and business stakeholders.
-            Focus on the business impact and why this matters to the organization.
-            """
-            
-            response = client.chat.completions.create(
-                model=config.settings.openai_model,
-                messages=[
-                    {"role": "system", "content": "You are a cybersecurity expert and business risk analyst providing clear, actionable security advice with business context."},
-                    {"role": "user", "content": prompt}
-                ],
-                max_tokens=config.settings.openai_max_tokens,
-                temperature=0.3
-            )
-            
-            ai_explanation = response.choices[0].message.content.strip()
-            
-            # Add AI explanation and risk assessment to query
-            query["ai_explanation"] = ai_explanation
-            query["risk_assessment"] = {
-                "impact": risk_assessment.impact.value,
-                "likelihood": risk_assessment.likelihood.value,
-                "business_risk": risk_assessment.business_risk.value,
-                "impact_description": risk_assessment.impact_description,
-                "likelihood_description": risk_assessment.likelihood_description,
-                "business_context": risk_assessment.business_context,
-                "remediation_priority": risk_assessment.remediation_priority,
-                "cost_estimate": risk_assessment.cost_estimate,
-                "time_to_fix": risk_assessment.time_to_fix
-            }
-            
-            # Generate specific explanations for each finding
-            for file_finding in files:
-                file_name = file_finding.get("file_name", "Unknown file")
-                line_number = file_finding.get("line", "Unknown line")
-                issue = file_finding.get("issue", "No issue description")
-                
-                try:
-                    finding_prompt = f"""
-                    Provide a specific fix for this security finding with business context:
-                    
-                    File: {file_name}
-                    Line: {line_number}
-                    Issue: {issue}
-                    Technical Severity: {severity}
-                    Business Risk: {risk_assessment.business_risk.value}
-                    Estimated Cost: {risk_assessment.cost_estimate}
-                    
-                    Provide:
-                    1. The exact code fix
-                    2. Why this fix works (technical explanation)
-                    3. Business benefits of implementing this fix
-                    4. Additional security considerations
-                    5. Implementation timeline and effort
-                    
-                    Be specific and provide actual code examples. Include business justification.
-                    """
-                    
-                    finding_response = client.chat.completions.create(
-                        model=config.settings.openai_model,
-                        messages=[
-                            {"role": "system", "content": "You are a cybersecurity expert providing specific code fixes with business context."},
-                            {"role": "user", "content": finding_prompt}
-                        ],
-                        max_tokens=config.settings.openai_max_tokens,
-                        temperature=0.3
-                    )
-                    
-                    file_finding["ai_fix"] = finding_response.choices[0].message.content.strip()
-                    
-                except Exception as e:
-                    print(f"⚠️ Error generating fix for {file_name}: {e}")
-                    file_finding["ai_fix"] = "AI fix generation failed"
-            
-        except Exception as e:
-            print(f"⚠️ Error generating explanation for {query_name}: {e}")
-            query["ai_explanation"] = "AI explanation generation failed"
-        
-        enriched_queries.append(query)
+    print(f"🚀 Starting AI explanation generation...")
+    print(f"📊 Total queries: {len(queries)}")
+    print(f"🔍 Queries with findings: {len([q for q in queries if q.get('files')])}")
+    print(f"⚡ Using {max_workers} concurrent workers")
+    print(f"⏱️ Request timeout: {config.settings.ai_request_timeout}s")
+    
+    start_time = time.time()
+    
+    enriched_queries = batch_generate_explanations(client, queries, max_workers)
+    
+    total_time = time.time() - start_time
+    print(f"✅ AI explanation generation completed in {total_time:.2f}s")
+    print(f"📈 Average time per query: {total_time/max(1, len([q for q in queries if q.get('files')])):.2f}s")
     
     # Generate HTML report if requested
     if output_html:
-        generate_html_report(enriched_queries, output_html)
+        # Calculate total cost for HTML report
+        total_cost = 0
+        for query in enriched_queries:
+            risk_assessment = query.get("risk_assessment", {})
+            cost_str = risk_assessment.get("cost_estimate", "$0")
+            if "$" in cost_str:
+                try:
+                    # Clean up the cost string and extract only the numeric part
+                    cost_range = cost_str.replace("$", "").replace("K", "000").replace("+", "").strip()
+                    
+                    # Remove everything after the first parenthesis or space that's not part of the number
+                    if "(" in cost_range:
+                        cost_range = cost_range.split("(")[0].strip()
+                    elif " " in cost_range and not any(c.isdigit() for c in cost_range.split(" ")[1]):
+                        cost_range = cost_range.split(" ")[0].strip()
+                    
+                    print(f"🔍 Debug - Cleaned cost range: {cost_range}")
+                    
+                    if "-" in cost_range:
+                        min_cost, max_cost = cost_range.split("-")
+                        min_cost = int(min_cost.strip())
+                        max_cost = int(max_cost.strip())
+                        avg_cost = (min_cost + max_cost) / 2
+                        print(f"🔍 Debug - Range cost: min={min_cost}, max={max_cost}, avg={avg_cost}")
+                    else:
+                        avg_cost = int(cost_range)
+                        print(f"🔍 Debug - Single cost: {avg_cost}")
+                    
+                    total_cost += avg_cost
+                    print(f"🔍 Debug - Updated total cost: {total_cost}")
+                except Exception as e:
+                    print(f"🔍 Debug - Error parsing cost '{cost_str}': {e}")
+                    pass
+        
+        generate_html_report(enriched_queries, output_html, total_cost)
     
     return enriched_queries
 
-def generate_html_report(queries: List[Dict], output_path: str):
+def generate_html_report(queries: List[Dict], output_path: str, total_cost: float = None):
     """
     Generate an HTML report with AI explanations and business risk assessment.
     
     Args:
         queries: List of enriched queries with AI explanations and risk assessment
         output_path: Path for the HTML output file
+        total_cost: Pre-calculated total cost (optional)
     """
     
-    # Calculate risk summary
+    # Initialize risk summary with proper keys
     risk_summary = {
         "critical": 0,
         "high": 0,
@@ -200,26 +338,53 @@ def generate_html_report(queries: List[Dict], output_path: str):
         "minimal": 0
     }
     
-    total_estimated_cost = 0
+    # Use provided total_cost or calculate it
+    if total_cost is not None:
+        total_estimated_cost = total_cost
+        print(f"🔍 Debug - Using provided total cost: {total_estimated_cost}")
+    else:
+        total_estimated_cost = 0
+        print(f"🔍 Debug - No total cost provided, starting at 0")
+    
+    print(f"🔍 Debug - Initial risk_summary: {risk_summary}")
     
     for query in queries:
         risk_assessment = query.get("risk_assessment", {})
-        business_risk = risk_assessment.get("business_risk", "Medium").lower()
-        risk_summary[business_risk] += 1
+        business_risk = risk_assessment.get("business_risk", "Medium")
         
-        # Calculate total cost
-        cost_str = risk_assessment.get("cost_estimate", "$0")
-        if "$" in cost_str:
-            try:
-                cost_range = cost_str.replace("$", "").replace("K", "000").replace("+", "")
-                if "-" in cost_range:
-                    min_cost, max_cost = cost_range.split("-")
-                    avg_cost = (int(min_cost) + int(max_cost)) / 2
-                else:
-                    avg_cost = int(cost_range)
-                total_estimated_cost += avg_cost
-            except:
-                pass
+        # Debug logging to identify the issue
+        print(f"🔍 Debug - business_risk type: {type(business_risk)}, value: {business_risk}")
+        
+        # Ensure business_risk is a string (handle cases where it might be a tuple or other type)
+        if isinstance(business_risk, (tuple, list)):
+            business_risk = str(business_risk[0]) if business_risk else "Medium"
+        elif not isinstance(business_risk, str):
+            business_risk = str(business_risk)
+        
+        print(f"🔍 Debug - business_risk after conversion: {business_risk}")
+        
+        # Map risk levels to expected summary keys
+        # Handle both string numbers and category names
+        risk_level_mapping = {
+            "critical": "critical",
+            "high": "high", 
+            "medium": "medium",
+            "low": "low",
+            "minimal": "minimal",
+            # Handle numeric string values
+            "1": "minimal",
+            "2": "low", 
+            "3": "medium",
+            "4": "high",
+            "5": "critical"
+        }
+        
+        # Use mapped key or default to "medium" if not found
+        summary_key = risk_level_mapping.get(business_risk.lower(), "medium")
+        print(f"🔍 Debug - summary_key: {summary_key}")
+        print(f"🔍 Debug - risk_summary keys before: {list(risk_summary.keys())}")
+        risk_summary[summary_key] += 1
+        print(f"🔍 Debug - risk_summary after update: {risk_summary}")
     
     html_content = f"""
 <!DOCTYPE html>
@@ -389,57 +554,65 @@ def generate_html_report(queries: List[Dict], output_path: str):
         </div>
         
         <div class="risk-matrix">
-            <h3>📋 Risk Matrix</h3>
+            <h3>📋 Risk Matrix (Impact × Likelihood = Business Risk Score)</h3>
             <table style="width: 100%; border-collapse: collapse;">
                 <tr>
                     <th style="border: 1px solid #ddd; padding: 8px;">Impact/Likelihood</th>
-                    <th style="border: 1px solid #ddd; padding: 8px;">Very High</th>
-                    <th style="border: 1px solid #ddd; padding: 8px;">High</th>
-                    <th style="border: 1px solid #ddd; padding: 8px;">Medium</th>
-                    <th style="border: 1px solid #ddd; padding: 8px;">Low</th>
-                    <th style="border: 1px solid #ddd; padding: 8px;">Very Low</th>
+                    <th style="border: 1px solid #ddd; padding: 8px;">Almost Certain (5)</th>
+                    <th style="border: 1px solid #ddd; padding: 8px;">Likely (4)</th>
+                    <th style="border: 1px solid #ddd; padding: 8px;">Possible (3)</th>
+                    <th style="border: 1px solid #ddd; padding: 8px;">Unlikely (2)</th>
+                    <th style="border: 1px solid #ddd; padding: 8px;">Rare (1)</th>
                 </tr>
                 <tr>
-                    <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">Critical</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; background: #e74c3c; color: white;">🔴 Critical</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; background: #e74c3c; color: white;">🔴 Critical</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; background: #f39c12; color: white;">🟠 High</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; background: #3498db; color: white;">🟡 Medium</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; background: #27ae60; color: white;">🟢 Low</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">Catastrophic (5)</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #e74c3c; color: white;">🔴 Critical (25)</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #e74c3c; color: white;">🔴 Critical (20)</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #f39c12; color: white;">🟠 High (15)</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #3498db; color: white;">🟡 Medium (10)</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #27ae60; color: white;">🟢 Low (5)</td>
                 </tr>
                 <tr>
-                    <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">High</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; background: #e74c3c; color: white;">🔴 Critical</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; background: #f39c12; color: white;">🟠 High</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; background: #f39c12; color: white;">🟠 High</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; background: #3498db; color: white;">🟡 Medium</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; background: #27ae60; color: white;">🟢 Low</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">Major (4)</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #e74c3c; color: white;">🔴 Critical (20)</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #f39c12; color: white;">🟠 High (16)</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #f39c12; color: white;">🟠 High (12)</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #3498db; color: white;">🟡 Medium (8)</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #27ae60; color: white;">🟢 Low (4)</td>
                 </tr>
                 <tr>
-                    <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">Medium</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; background: #f39c12; color: white;">🟠 High</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; background: #3498db; color: white;">🟡 Medium</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; background: #3498db; color: white;">🟡 Medium</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; background: #27ae60; color: white;">🟢 Low</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; background: #95a5a6; color: white;">⚪ Minimal</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">Moderate (3)</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #f39c12; color: white;">🟠 High (15)</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #3498db; color: white;">🟡 Medium (12)</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #3498db; color: white;">🟡 Medium (9)</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #27ae60; color: white;">🟢 Low (6)</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #95a5a6; color: white;">⚪ Minimal (3)</td>
                 </tr>
                 <tr>
-                    <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">Low</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; background: #3498db; color: white;">🟡 Medium</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; background: #27ae60; color: white;">🟢 Low</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; background: #27ae60; color: white;">🟢 Low</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; background: #95a5a6; color: white;">⚪ Minimal</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; background: #95a5a6; color: white;">⚪ Minimal</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">Minor (2)</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #3498db; color: white;">🟡 Medium (10)</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #27ae60; color: white;">🟢 Low (8)</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #27ae60; color: white;">🟢 Low (6)</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #95a5a6; color: white;">⚪ Minimal (4)</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #95a5a6; color: white;">⚪ Minimal (2)</td>
                 </tr>
                 <tr>
-                    <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">Minimal</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; background: #27ae60; color: white;">🟢 Low</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; background: #95a5a6; color: white;">⚪ Minimal</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; background: #95a5a6; color: white;">⚪ Minimal</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; background: #95a5a6; color: white;">⚪ Minimal</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; background: #95a5a6; color: white;">⚪ Minimal</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">Insignificant (1)</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #27ae60; color: white;">🟢 Low (5)</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #95a5a6; color: white;">⚪ Minimal (4)</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #95a5a6; color: white;">⚪ Minimal (3)</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #95a5a6; color: white;">⚪ Minimal (2)</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background: #95a5a6; color: white;">⚪ Minimal (1)</td>
                 </tr>
             </table>
+            <p><strong>Risk Level Thresholds:</strong></p>
+            <ul>
+                <li><strong>Critical (20-25):</strong> Immediate action required</li>
+                <li><strong>High (15-19):</strong> High priority remediation</li>
+                <li><strong>Medium (10-14):</strong> Moderate priority</li>
+                <li><strong>Low (5-9):</strong> Low priority</li>
+                <li><strong>Minimal (1-4):</strong> Acceptable risk</li>
+            </ul>
         </div>
 """
     
@@ -452,6 +625,13 @@ def generate_html_report(queries: List[Dict], output_path: str):
         risk_assessment = query.get("risk_assessment", {})
         
         business_risk = risk_assessment.get("business_risk", "Medium")
+        
+        # Ensure business_risk is a string (handle cases where it might be a tuple or other type)
+        if isinstance(business_risk, (tuple, list)):
+            business_risk = str(business_risk[0]) if business_risk else "Medium"
+        elif not isinstance(business_risk, str):
+            business_risk = str(business_risk)
+        
         risk_class = f"risk-{business_risk.lower()}"
         
         html_content += f"""
@@ -464,6 +644,8 @@ def generate_html_report(queries: List[Dict], output_path: str):
             <h3>📊 Business Risk Assessment</h3>
             <p><strong>Impact:</strong> {risk_assessment.get('impact', 'Unknown')} - {risk_assessment.get('impact_description', '')}</p>
             <p><strong>Likelihood:</strong> {risk_assessment.get('likelihood', 'Unknown')} - {risk_assessment.get('likelihood_description', '')}</p>
+            <p><strong>Business Risk Score:</strong> {risk_assessment.get('business_risk_score', 'Unknown')} (Impact × Likelihood)</p>
+            <p><strong>Business Risk Level:</strong> {risk_assessment.get('business_risk', 'Unknown')}</p>
             <p><strong>Remediation Priority:</strong> {risk_assessment.get('remediation_priority', 'Medium')}</p>
             <p><strong>Estimated Cost:</strong> {risk_assessment.get('cost_estimate', 'Unknown')}</p>
             <p><strong>Time to Fix:</strong> {risk_assessment.get('time_to_fix', 'Unknown')}</p>

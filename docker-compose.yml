@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  driftbuddy:
+    build: .
+    container_name: driftbuddy
+    environment:
+      - LOG_LEVEL=INFO
+      - LOG_FORMAT=json
+      - DEBUG=false
+    volumes:
+      - ./test_data:/app/test_data
+      - ./outputs:/app/outputs
+      - ./secrets:/app/secrets:ro
+    env_file:
+      - .env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - driftbuddy-network
+
+  # Optional: Add a web interface service
+  # driftbuddy-web:
+  #   build: 
+  #     context: .
+  #     dockerfile: Dockerfile.web
+  #   container_name: driftbuddy-web
+  #   ports:
+  #     - "8000:8000"
+  #   environment:
+  #     - DRIFTBUDDY_API_URL=http://driftbuddy:8000
+  #   depends_on:
+  #     - driftbuddy
+  #   networks:
+  #     - driftbuddy-network
+
+networks:
+  driftbuddy-network:
+    driver: bridge
+
+volumes:
+  driftbuddy-data:
+    driver: local 

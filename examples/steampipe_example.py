@@ -16,7 +16,7 @@ def example_aws_security_scan():
     print("=" * 40)
     
     try:
-        from steampipe_integration import SteampipeIntegration
+        from src.driftbuddy.steampipe_integration import SteampipeIntegration
         
         steampipe = SteampipeIntegration()
         
@@ -52,7 +52,7 @@ def example_custom_query():
     print("=" * 40)
     
     try:
-        from steampipe_integration import SteampipeIntegration
+        from src.driftbuddy.steampipe_integration import SteampipeIntegration
         
         steampipe = SteampipeIntegration()
         
@@ -92,7 +92,7 @@ def example_drift_detection():
     print("=" * 40)
     
     try:
-        from steampipe_integration import SteampipeIntegration
+        from src.driftbuddy.steampipe_integration import SteampipeIntegration
         
         steampipe = SteampipeIntegration()
         

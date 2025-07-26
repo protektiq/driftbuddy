@@ -9,7 +9,7 @@ from pathlib import Path
 
 def test_timestamped_filename():
     """Test the timestamped filename generation"""
-    from driftbuddy import generate_timestamped_filename
+    from src.driftbuddy import generate_timestamped_filename
     
     print("🧪 Testing Timestamped Filename Generation")
     print("=" * 50)

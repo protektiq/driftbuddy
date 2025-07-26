@@ -10,7 +10,7 @@ from pathlib import Path
 def test_steampipe_import():
     """Test if Steampipe integration can be imported"""
     try:
-        from steampipe_integration import SteampipeIntegration
+        from src.driftbuddy.steampipe_integration import SteampipeIntegration
         print("✅ Steampipe integration imported successfully")
         return True
     except ImportError as e:
@@ -20,7 +20,7 @@ def test_steampipe_import():
 def test_steampipe_installation():
     """Test Steampipe installation"""
     try:
-        from steampipe_integration import SteampipeIntegration
+        from src.driftbuddy.steampipe_integration import SteampipeIntegration
         steampipe = SteampipeIntegration()
         
         if steampipe.steampipe_installed:
@@ -36,7 +36,7 @@ def test_steampipe_installation():
 def test_plugins_installation():
     """Test cloud provider plugins installation"""
     try:
-        from steampipe_integration import SteampipeIntegration
+        from src.driftbuddy.steampipe_integration import SteampipeIntegration
         steampipe = SteampipeIntegration()
         
         available_plugins = [plugin for plugin, installed in steampipe.plugins_installed.items() if installed]
@@ -58,7 +58,7 @@ def test_plugins_installation():
 def test_query_functionality():
     """Test basic query functionality"""
     try:
-        from steampipe_integration import SteampipeIntegration
+        from src.driftbuddy.steampipe_integration import SteampipeIntegration
         steampipe = SteampipeIntegration()
         
         # Test with a simple query
@@ -78,7 +78,7 @@ def test_query_functionality():
 def test_report_generation():
     """Test report generation functionality"""
     try:
-        from steampipe_integration import SteampipeIntegration
+        from src.driftbuddy.steampipe_integration import SteampipeIntegration
         steampipe = SteampipeIntegration()
         
         # Create test data
@@ -115,7 +115,7 @@ def test_driftbuddy_integration():
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
         
         # Import the main driftbuddy module
-        import driftbuddy
+        import src.driftbuddy.core as driftbuddy
         
         # Check if STEAMPIPE_AVAILABLE is set
         if hasattr(driftbuddy, 'STEAMPIPE_AVAILABLE'):

@@ -9,14 +9,14 @@ from dotenv import load_dotenv
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-markdown_output = "kics_explained.md"
+markdown_output = "../../outputs/analysis/kics_explained.md"
 
 # Start fresh each time
 with open(markdown_output, "w") as md_file:
     md_file.write(f"# KICS Explainer Output\n\nGenerated on {datetime.now()}\n\n")
 
 # Load results
-with open("test_data/output/results.json") as f:
+with open("../../test_data/output/results.json") as f:
     data = json.load(f)
 
 queries = data.get("queries", [])

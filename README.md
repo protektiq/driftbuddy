@@ -387,3 +387,89 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 **Made with ❤️ for secure infrastructure**
+
+## ☁️ Cloud Infrastructure Scanning with Steampipe
+
+DriftBuddy now supports **cloud infrastructure scanning** using Steampipe, allowing you to query real cloud infrastructure as if it were a database. This enables detection of:
+
+- **🚨 Security Misconfigurations** in live cloud resources
+- **👻 Shadow Resources** (unmanaged infrastructure)
+- **🔄 Infrastructure Drift** between IaC and actual cloud state
+- **💰 Cost Optimization** opportunities
+
+### Quick Start with Cloud Scanning
+
+```bash
+# Install Steampipe
+curl -s -L https://steampipe.io/install.sh | sh
+
+# Install cloud provider plugins
+steampipe plugin install aws
+steampipe plugin install azure
+steampipe plugin install gcp
+
+# Run cloud security scan
+python driftbuddy.py --cloud aws --scan-type security
+
+# Scan for shadow resources
+python driftbuddy.py --cloud aws --scan-type shadow
+
+# Detect infrastructure drift
+python driftbuddy.py --cloud aws --scan-type drift
+
+# Run all scan types
+python driftbuddy.py --cloud aws --all-scans
+```
+
+### Supported Cloud Providers
+
+- **AWS** - S3, IAM, EC2, RDS, Security Groups, and more
+- **Azure** - Storage Accounts, Virtual Machines, Network Security Groups
+- **GCP** - Storage Buckets, Compute Instances, IAM, Firewall Rules
+- **Kubernetes** - Pods, Services, ConfigMaps, Secrets
+
+### Scan Types
+
+#### **Security Scan** (`--scan-type security`)
+Detects security misconfigurations in cloud infrastructure:
+- Public S3 buckets and storage accounts
+- Overly permissive IAM policies and roles
+- Open security groups and firewall rules
+- Insecure Kubernetes configurations
+
+#### **Shadow Resources** (`--scan-type shadow`)
+Identifies unmanaged infrastructure:
+- Resources created manually (not via IaC)
+- Old or unused resources
+- Resources without proper tagging
+- Orphaned resources
+
+#### **Drift Detection** (`--scan-type drift`)
+Compares IaC with actual cloud state:
+- Missing resources (in IaC but not in cloud)
+- Extra resources (in cloud but not in IaC)
+- Configuration differences
+
+### Combined Scanning
+
+You can run both IaC and cloud scanning together:
+
+```bash
+# Scan IaC files AND cloud infrastructure
+python driftbuddy.py ./terraform-code --all --cloud aws --scan-type security
+
+# Generate all reports for both
+python driftbuddy.py ./terraform-code --all --cloud aws --all-scans --reports-dir ./reports
+```
+
+### Cloud Scanning Reports
+
+Cloud scans generate detailed reports including:
+- **Security Issues Found** with severity levels
+- **Shadow Resources** with creation dates
+- **Drift Analysis** with resource comparisons
+- **Recommendations** for remediation
+
+For detailed setup instructions, see [STEAMPIPE_SETUP.md](STEAMPIPE_SETUP.md).
+
+## 🛡️ Security Scanning Features

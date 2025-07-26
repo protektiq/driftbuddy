@@ -1,6 +1,7 @@
 from openai import OpenAI
 import json
 import os
+import markdown
 from datetime import datetime
 from dotenv import load_dotenv
 
@@ -70,3 +71,30 @@ for query in queries:
 
 if not has_findings:
     print("No findings found in any queries.")
+
+# Convert markdown to HTML
+with open(markdown_output, "r") as md_file:
+    md_text = md_file.read()
+
+html_output = markdown.markdown(md_text, extensions=["fenced_code", "tables"])
+
+# Save to .html
+with open("kics_explained.html", "w") as html_file:
+    html_file.write(f"""
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <title>KICS Explainer Output</title>
+      <style>
+        body {{ font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: auto; }}
+        pre {{ background: #f4f4f4; padding: 10px; overflow-x: auto; }}
+        code {{ font-family: monospace; }}
+        h2 {{ color: #2c3e50; }}
+      </style>
+    </head>
+    <body>
+      {html_output}
+    </body>
+    </html>
+    """)
+print("✅ HTML report saved as kics_explained.html")

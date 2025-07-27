@@ -20,13 +20,31 @@ jobs:
       with:
         python-version: '3.11'
 
-    - name: Install KICS
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.22'
+
+    - name: Install KICS from source
       run: |
-        curl -L https://github.com/Checkmarx/kics/releases/latest/download/kics_linux_amd64.tar.gz -o kics.tar.gz
-        tar -xzf kics.tar.gz
-        sudo mv kics /usr/local/bin/
+        # Clone KICS repository
+        git clone https://github.com/Checkmarx/kics.git
+        cd kics
+
+        # Install Go dependencies and build
+        go mod vendor
+        go build -o ./bin/kics cmd/console/main.go
+
+        # Install KICS globally
+        sudo mv ./bin/kics /usr/local/bin/
         sudo chmod +x /usr/local/bin/kics
-        rm kics.tar.gz
+
+        # Clean up
+        cd ..
+        rm -rf kics
+
+        # Verify installation
+        kics version
 
     - name: Install Python dependencies
       run: |

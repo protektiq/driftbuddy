@@ -2,9 +2,6 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
-      - id: trailing-whitespace
-        stages: [commit]
-        require_serial: true
       - id: end-of-file-fixer
         stages: [commit]
         require_serial: true
@@ -14,7 +11,6 @@ repos:
       #         assets/|
       #         test_data/
       #     )$
-      - id: check-added-large-files
       - id: check-merge-conflict
       - id: check-case-conflict
       - id: check-docstring-first

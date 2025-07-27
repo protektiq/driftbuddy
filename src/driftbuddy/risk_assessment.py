@@ -389,6 +389,17 @@ class RiskMatrix:
 
         query_lower = query_name.lower()
 
+        # Special case for "Unknown Query" - always use severity mapping
+        if query_lower == "unknown query":
+            severity_map = {
+                "CRITICAL": LikelihoodLevel.LIKELY,
+                "HIGH": LikelihoodLevel.LIKELY,
+                "MEDIUM": LikelihoodLevel.POSSIBLE,
+                "LOW": LikelihoodLevel.UNLIKELY,
+                "INFO": LikelihoodLevel.RARE,
+            }
+            return severity_map.get(severity.upper(), LikelihoodLevel.POSSIBLE)
+
         # Almost certain scenarios (Score 5)
         if any(
             keyword in query_lower
@@ -403,7 +414,7 @@ class RiskMatrix:
             return LikelihoodLevel.ALMOST_CERTAIN
 
         # Likely scenarios (Score 4)
-        if any(keyword in query_lower for keyword in ["default", "weak", "common", "known", "open"]):
+        if any(keyword in query_lower for keyword in ["default", "weak", "common", "open"]):
             return LikelihoodLevel.LIKELY
 
         # Possible scenarios (Score 3)
@@ -523,6 +534,7 @@ def generate_risk_report(findings: List[Dict]) -> Dict[str, Any]:
     return {
         "risk_assessments": risk_assessments,
         "risk_summary": risk_summary,
+        "risk_distribution": risk_summary,  # Add the missing key
         "total_estimated_cost": f"${total_estimated_cost:,.0f}",
         "total_findings": len(findings),
         "critical_findings": risk_summary["critical"],

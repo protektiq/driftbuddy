@@ -61,7 +61,7 @@ jobs:
 
     - name: Run DriftBuddy Security Scan
       run: |
-        python driftbuddy.py . --all --reports-dir ./security-reports
+        python driftbuddy.py --scan-path . --all --reports-dir ./security-reports
 
     - name: Upload Security Reports
       uses: actions/upload-artifact@v4

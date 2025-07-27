@@ -85,6 +85,10 @@ jobs:
       run: |
         echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> $GITHUB_ENV
 
+    - name: Create reports directory
+      run: |
+        mkdir -p ./security-reports
+
     - name: Run DriftBuddy Security Scan
       run: |
         python driftbuddy.py "${{ github.event.inputs.scan_path || '.' }}" --all --reports-dir ./security-reports

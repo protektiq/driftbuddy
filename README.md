@@ -1,5 +1,13 @@
 # 🔒 DriftBuddy - Infrastructure Security Scanner with Business Risk Assessment
 
+  DDDDDDD   RRRRRRRR   IIIIII  FFFFFFF  TTTTTTT   BBBBBBB   UUU   UUU  DDDDDDD   DDDDDDD   YYYYYYY
+  DDDDDDDD  RRRRRRRRR   III    FFFFFF   TTTTTTT   BBBBBBBB  UUU   UUU  DDDDDDDD  DDDDDDDD   YYYYY
+  DDD  DDD  RRR   RRR   III    FFF        TTT     BBB   BB  UUU   UUU  DDD  DDD  DDD  DDD    YYY
+  DDD  DDD  RRRRRRRRR   III    FFFFFF     TTT     BBBBBBBB  UUU   UUU  DDD  DDD  DDD  DDD    YYY
+  DDD  DDD  RRR RRR     III    FFFFFF     TTT     BBBBBBB   UUU   UUU  DDD  DDD  DDD  DDD    YYY
+  DDDDDDDD  RRR  RRR    III    FFF        TTT     BBB   BB  UUU   UUU  DDDDDDDD  DDDDDDDD    YYY
+  DDDDDDD   RRR   RRR  IIIIII  FFFF       TTT     BBBBBBBB   UUUUUUU   DDDDDDD   DDDDDDD     YYY
+
 **Enterprise-ready infrastructure security scanner with AI-powered explanations and comprehensive business risk assessment using Impact × Likelihood methodology.**
 
 ## 🚀 Features
@@ -27,6 +35,7 @@
 - **Cost-Benefit Analysis**: Justifies security investments
 - **Performance Optimized**: Batch processing with concurrent API calls
 - **Deterministic Output**: Consistent AI responses with temperature=0
+- **LangChain Integration**: Advanced AI capabilities with memory, chains, and agents
 
 ### 📈 **Comprehensive Reporting**
 - **Multiple Formats**: HTML, Markdown, and JSON reports
@@ -73,6 +82,9 @@ pip install -r requirements.txt
 
 # Install KICS (if not already installed)
 # Visit: https://kics.io/
+
+# Optional: Install LangChain dependencies for enhanced AI features
+pip install langchain>=0.1.0 langchain-openai>=0.1.0 langchain-community>=0.1.0
 ```
 
 ### **API Key Setup**
@@ -112,6 +124,12 @@ python driftbuddy.py --scan-path ./cloudformation --reports-dir ./reports
 # Run all available scans (KICS + Steampipe if available)
 python driftbuddy.py --scan-path . --all --enable-ai
 
+# LangChain-enhanced analysis
+python driftbuddy.py --scan-path . --enable-langchain --enable-ai
+
+# Comprehensive analysis with all features
+python driftbuddy.py --scan-path . --all --enable-langchain --enable-ai
+
 # Test functionality only
 python driftbuddy.py --test
 ```
@@ -129,6 +147,9 @@ Options:
   --kics-only            Run only KICS scan
   --steampipe-only       Run only Steampipe scan (requires cloud credentials)
   --cloud-provider PROVIDER  Cloud provider for Steampipe scans: aws, azure, gcp (default: aws)
+  --enable-langchain     Enable LangChain-enhanced analysis with advanced AI capabilities
+  --langchain-only       Run only LangChain analysis (requires previous scan results)
+  --knowledge-base       Create and use knowledge base for enhanced analysis
   --test                 Run functionality test only
 ```
 
@@ -364,6 +385,38 @@ python demo_risk_calculation.py
 # Test functionality
 python driftbuddy.py --test
 ```
+
+## 🔗 **LangChain Integration**
+
+### **Advanced AI Capabilities**
+- **Memory**: Context-aware analysis across multiple scans
+- **Chains**: Multi-step reasoning for complex security analysis
+- **Agents**: Autonomous security analysis with tool usage
+- **RAG**: Retrieval-Augmented Generation for knowledge-based analysis
+- **Enhanced Reporting**: Advanced AI-powered security reports
+
+### **Usage Examples**
+```bash
+# Enable LangChain analysis
+python driftbuddy-cli.py --scan-path . --enable-langchain --enable-ai
+
+# Comprehensive analysis with all features
+python driftbuddy-cli.py --scan-path . --all --enable-langchain --enable-ai
+
+# Knowledge base integration
+python driftbuddy-cli.py --scan-path . --enable-langchain --knowledge-base
+```
+
+### **Installation**
+```bash
+# Install LangChain dependencies
+pip install langchain>=0.1.0 langchain-openai>=0.1.0 langchain-community>=0.1.0
+
+# Test integration
+python test_langchain_integration.py
+```
+
+For detailed LangChain documentation, see [LANGCHAIN_INTEGRATION.md](LANGCHAIN_INTEGRATION.md).
 
 ## 🚀 **Performance Optimizations**
 

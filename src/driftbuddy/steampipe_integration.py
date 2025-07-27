@@ -140,21 +140,21 @@ class SteampipeIntegration:
         return {
             "aws": [
                 # S3 Security
-                "SELECT name, bucket_policy_is_public, versioning_enabled, logging_enabled FROM aws_s3_bucket WHERE bucket_policy_is_public = true",
+                "SELECT name, bucket_policy_is_public, versioning_enabled FROM aws_s3_bucket WHERE bucket_policy_is_public = true",
                 "SELECT name, versioning_enabled FROM aws_s3_bucket WHERE versioning_enabled = false",
-                # IAM Security
-                "SELECT name, attached_policies, inline_policies FROM aws_iam_user WHERE name LIKE '%admin%'",
-                "SELECT name, attached_policies FROM aws_iam_role WHERE attached_policies LIKE '%AdministratorAccess%'",
-                # Security Groups
-                "SELECT name, description, vpc_id FROM aws_security_group WHERE description = '' OR description IS NULL",
-                "SELECT name, ip_permissions FROM aws_security_group WHERE ip_permissions LIKE '%0.0.0.0/0%'",
+                # IAM Security - Fixed column names based on actual schema
+                "SELECT name, attached_policy_arns, inline_policies FROM aws_iam_user WHERE name LIKE '%admin%'",
+                "SELECT name, attached_policy_arns FROM aws_iam_role WHERE attached_policy_arns LIKE '%AdministratorAccess%'",
+                # Security Groups - Fixed table name to aws_vpc_security_group
+                "SELECT name, description, vpc_id FROM aws_vpc_security_group WHERE description = '' OR description IS NULL",
+                "SELECT name, ip_permissions FROM aws_vpc_security_group WHERE ip_permissions LIKE '%0.0.0.0/0%'",
                 # EC2 Instances
                 "SELECT instance_id, instance_type, state, public_ip_address FROM aws_ec2_instance WHERE state = 'running' AND public_ip_address IS NOT NULL",
                 "SELECT instance_id, instance_type, state FROM aws_ec2_instance WHERE state = 'stopped'",
                 # RDS Security
                 "SELECT db_instance_identifier, publicly_accessible, storage_encrypted FROM aws_rds_db_instance WHERE publicly_accessible = true",
                 # Shadow Resources
-                "SELECT name, created_date FROM aws_s3_bucket WHERE created_date < NOW() - INTERVAL '90 days'",
+                "SELECT name, creation_date FROM aws_s3_bucket WHERE creation_date < NOW() - INTERVAL '90 days'",
                 "SELECT instance_id, launch_time FROM aws_ec2_instance WHERE launch_time < NOW() - INTERVAL '30 days'",
             ],
             "azure": [

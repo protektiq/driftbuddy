@@ -67,6 +67,7 @@ docs = [
 
 [project.scripts]
 driftbuddy = "driftbuddy.core:main"
+driftbuddy-cli = "driftbuddy.core:main"
 
 [project.urls]
 Homepage = "https://github.com/driftbuddy/driftbuddy"

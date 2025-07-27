@@ -5,11 +5,11 @@ import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import markdown
 
-from src.agent.explainer import explain_findings, load_kics_results
+from driftbuddy.agent.explainer import explain_findings, load_kics_results
 
 from .config import get_config
 from .exceptions import DriftBuddyError, handle_exception
@@ -26,6 +26,27 @@ try:
 except ImportError:
     STEAMPIPE_AVAILABLE = False
     print("⚠️ Steampipe integration not available. Install steampipe_integration.py for cloud scanning features.")
+
+# LangChain integration flag - will be set to True if imports succeed
+LANGCHAIN_AVAILABLE = False
+
+
+def _import_langchain():
+    """Lazy import of LangChain modules to avoid circular imports"""
+    global LANGCHAIN_AVAILABLE
+    try:
+        from .agent.enhanced_agent import EnhancedSecurityAgent, create_enhanced_agent
+        from .langchain_integration import (
+            DriftBuddyLangChain,
+            create_langchain_integration,
+        )
+
+        LANGCHAIN_AVAILABLE = True
+        return DriftBuddyLangChain, create_langchain_integration, EnhancedSecurityAgent, create_enhanced_agent
+    except ImportError as e:
+        LANGCHAIN_AVAILABLE = False
+        print("⚠️ LangChain integration not available. Install langchain dependencies for enhanced AI features.")
+        return None, None, None, None
 
 
 @handle_exception
@@ -279,13 +300,13 @@ def run_kics_local(scan_path: str, output_dir: str) -> Dict[str, Any]:
 
         # Display DriftBuddy ASCII art logo
         driftbuddy_logo = """
-DDDDDDD   RRRRRRRR   IIIIII  FFFFFFF  TTTTTTT   BBBBBBB   UUU   UUU  DDDDDDD   DDDDDDD   YYYYYYY
+  DDDDDDD   RRRRRRRR   IIIIII  FFFFFFF  TTTTTTT   BBBBBBB   UUU   UUU  DDDDDDD   DDDDDDD   YYYYYYY
   DDDDDDDD  RRRRRRRRR   III    FFFFFF   TTTTTTT   BBBBBBBB  UUU   UUU  DDDDDDDD  DDDDDDDD   YYYYY
   DDD  DDD  RRR   RRR   III    FFF        TTT     BBB   BB  UUU   UUU  DDD  DDD  DDD  DDD    YYY
   DDD  DDD  RRRRRRRRR   III    FFFFFF     TTT     BBBBBBBB  UUU   UUU  DDD  DDD  DDD  DDD    YYY
   DDD  DDD  RRR RRR     III    FFFFFF     TTT     BBBBBBB   UUU   UUU  DDD  DDD  DDD  DDD    YYY
   DDDDDDDD  RRR  RRR    III    FFF        TTT     BBB   BB  UUU   UUU  DDDDDDDD  DDDDDDDD    YYY
-  DDDDDDD   RRR   RRR  IIIII  FFFF        TTT     BBBBBBBB   UUUUUUU   DDDDDDD   DDDDDDD     YYY 
+  DDDDDDD   RRR   RRR  IIIIII  FFFF       TTT     BBBBBBBB   UUUUUUU   DDDDDDD   DDDDDDD     YYY 
                                                                                                         
     🔍 Infrastructure Security Analysis Tool
     🛡️  Keeping Your Infrastructure as Code Secure
@@ -604,11 +625,11 @@ def run_steampipe_security_scan(steampipe: SteampipeIntegration, cloud_provider:
         "findings": [],
     }
 
-    # Common security queries
+    # Common security queries - Fixed based on actual Steampipe schema
     security_queries = [
-        "SELECT * FROM aws_iam_user WHERE password_enabled = true",
-        "SELECT * FROM aws_s3_bucket WHERE versioning_enabled = false",
-        "SELECT * FROM aws_security_group WHERE ingress_rules_cidr = '0.0.0.0/0'",
+        "SELECT name, attached_policy_arns, inline_policies FROM aws_iam_user WHERE name LIKE '%admin%'",
+        "SELECT name, versioning_enabled FROM aws_s3_bucket WHERE versioning_enabled = false",
+        "SELECT name, description, vpc_id FROM aws_vpc_security_group WHERE description = '' OR description IS NULL",
     ]
 
     for query in security_queries:
@@ -634,11 +655,11 @@ def run_steampipe_drift_scan(steampipe: SteampipeIntegration, cloud_provider: st
         "drift_findings": [],
     }
 
-    # Drift detection queries
+    # Drift detection queries - Fixed based on actual Steampipe schema
     drift_queries = [
-        "SELECT * FROM aws_ec2_instance WHERE state_name = 'running'",
-        "SELECT * FROM aws_s3_bucket",
-        "SELECT * FROM aws_iam_role",
+        "SELECT instance_id, instance_type, state FROM aws_ec2_instance WHERE state = 'running'",
+        "SELECT name, region FROM aws_s3_bucket",
+        "SELECT name, attached_policy_arns FROM aws_iam_role",
     ]
 
     for query in drift_queries:
@@ -733,6 +754,21 @@ Examples:
         default="aws",
         help="Cloud provider for Steampipe scans (default: aws)",
     )
+    parser.add_argument(
+        "--enable-langchain",
+        action="store_true",
+        help="Enable LangChain-enhanced analysis with advanced AI capabilities",
+    )
+    parser.add_argument(
+        "--langchain-only",
+        action="store_true",
+        help="Run only LangChain-enhanced analysis (requires previous scan results)",
+    )
+    parser.add_argument(
+        "--knowledge-base",
+        action="store_true",
+        help="Create and use knowledge base for enhanced analysis",
+    )
     parser.add_argument("--test", action="store_true", help="Run functionality test only")
 
     args = parser.parse_args()
@@ -769,12 +805,15 @@ Examples:
     print(f"📁 Scan path: {scan_path.absolute()}")
     print(f"📊 Output format: {args.output_format}")
     print(f"🤖 AI analysis: {'Enabled' if args.enable_ai else 'Disabled'}")
+    print(f"🔗 LangChain analysis: {'Enabled' if args.enable_langchain else 'Disabled'}")
 
     # Ensure reports directory exists
     reports_dir = Path(args.reports_dir)
     reports_dir.mkdir(parents=True, exist_ok=True)
 
     all_results = []
+    kics_results = None
+    steampipe_results = None
 
     # Run KICS scan
     if args.all or args.kics_only or not args.steampipe_only:
@@ -790,7 +829,8 @@ Examples:
                         # Extract queries from the loaded results
                         queries = loaded_results.get("queries", [])
                         if queries:
-                            all_results.append({"queries": queries, "source": "kics"})
+                            kics_results = {"queries": queries, "source": "kics"}
+                            all_results.append(kics_results)
                             print(f"✅ DriftBuddy scan completed - Found {len(queries)} findings")
                         else:
                             print("✅ DriftBuddy scan completed - No security issues found")
@@ -809,7 +849,54 @@ Examples:
         print(f"\n🔍 Running Steampipe scan for {args.cloud_provider}...")
         try:
             steampipe_results = run_steampipe_scan(args.cloud_provider, "security")
-            if steampipe_results:
+            if steampipe_results and steampipe_results.get("findings"):
+                # Convert Steampipe findings to the expected format for report generation
+                steampipe_queries = []
+                for finding in steampipe_results.get("findings", []):
+                    # Convert each finding to a query-like format for consistency
+                    # Create a file entry that the AI system expects
+                    file_entry = {"file_name": "cloud_infrastructure", "line": 1, "issue": f"Cloud security issue: {finding}", "severity": "HIGH"}
+
+                    # Create a more descriptive query name based on the finding content
+                    query_name = "Cloud Security Finding"
+                    if "s3" in str(finding).lower():
+                        query_name = "S3 Bucket Security Issue"
+                    elif "iam" in str(finding).lower():
+                        query_name = "IAM Security Issue"
+                    elif "security_group" in str(finding).lower():
+                        query_name = "Security Group Configuration Issue"
+                    elif "ec2" in str(finding).lower():
+                        query_name = "EC2 Instance Security Issue"
+                    elif "rds" in str(finding).lower():
+                        query_name = "RDS Database Security Issue"
+
+                    query_entry = {
+                        "query_name": query_name,
+                        "severity": "HIGH",  # Default severity for cloud findings
+                        "category": "Cloud Infrastructure Security",
+                        "description": f"Cloud infrastructure security issue detected in {args.cloud_provider.upper()}: {finding}",
+                        "platform": "Cloud",
+                        "cloud_provider": args.cloud_provider,
+                        "file": "cloud_infrastructure",
+                        "line": 1,
+                        "issue_type": "CloudSecurityIssue",
+                        "key_expected_value": "Secure configuration",
+                        "key_actual_value": "Insecure configuration detected",
+                        "remediation": "Review and fix cloud security configuration",
+                        "remediation_type": "configuration",
+                        "cloud_finding": finding,  # Store the original finding
+                        "files": [file_entry],  # Add files array for AI explanation compatibility
+                    }
+                    steampipe_queries.append(query_entry)
+
+                # Add Steampipe results in the expected format
+                steampipe_formatted_results = {
+                    "scan_type": "steampipe",
+                    "provider": args.cloud_provider,
+                    "timestamp": datetime.now().isoformat(),
+                    "queries": steampipe_queries,
+                }
+                steampipe_results = steampipe_formatted_results
                 all_results.append(steampipe_results)
                 print(f"✅ Steampipe scan completed - Found {len(steampipe_results.get('findings', []))} findings")
             else:
@@ -853,6 +940,32 @@ Examples:
                     print("ℹ️ No security findings to analyze - skipping AI analysis")
             except Exception as e:
                 print(f"❌ AI analysis failed: {str(e)}")
+
+        # LangChain enhanced analysis if enabled
+        if args.enable_langchain:
+            print("\n🔗 Running LangChain enhanced analysis...")
+            try:
+                # Try to import LangChain modules
+                DriftBuddyLangChain, create_langchain_integration, EnhancedSecurityAgent, create_enhanced_agent = _import_langchain()
+
+                if all([DriftBuddyLangChain, create_langchain_integration, EnhancedSecurityAgent, create_enhanced_agent]):
+                    # Run enhanced analysis with LangChain
+                    enhanced_results = run_enhanced_analysis_with_langchain(
+                        kics_results=kics_results, steampipe_results=steampipe_results, enable_ai=args.enable_ai, reports_dir=str(reports_dir)
+                    )
+
+                    if enhanced_results:
+                        print("✅ LangChain enhanced analysis completed")
+
+                        # Add enhanced analysis to the results
+                        if "enhanced_analysis" in enhanced_results:
+                            all_results.append({"source": "langchain_enhanced", "enhanced_analysis": enhanced_results["enhanced_analysis"]})
+                    else:
+                        print("ℹ️ No enhanced analysis results available")
+                else:
+                    print("⚠️ LangChain integration not available - skipping enhanced analysis")
+            except Exception as e:
+                print(f"❌ LangChain enhanced analysis failed: {str(e)}")
 
         # Generate HTML report
         if args.output_format in ["html", "all"]:
@@ -1054,7 +1167,11 @@ Examples:
                         # Add AI explanation if available
                         ai_md = query.get("ai_explanation")
                         if ai_md:
-                            html_content += f"<div class='ai-section'><strong>AI Explanation</strong><br>{markdown.markdown(ai_md)}</div>"
+                            html_content += f"<div class='ai-section'><strong>🤖 AI Explanation</strong><br>{markdown.markdown(ai_md)}</div>"
+
+                        # Add cloud-specific information if this is a cloud finding
+                        if query.get("cloud_provider"):
+                            html_content += f"<div class='ai-section'><strong>☁️ Cloud Provider:</strong> {query.get('cloud_provider').upper()}</div>"
 
                         # Add remediation code if available
                         remediation_code = query.get("remediation_code")
@@ -1063,6 +1180,49 @@ Examples:
                             html_content += f"<div class='ai-section'><strong>Remediation Code</strong><br>{markdown.markdown(remediation_code)}</div>"
 
                         html_content += "</div>"
+
+                    # Add LangChain enhanced analysis section if available
+                    langchain_results = None
+                    for result in all_results:
+                        if result.get("source") == "langchain_enhanced":
+                            langchain_results = result.get("enhanced_analysis")
+                            break
+
+                    if langchain_results:
+                        html_content += f"""
+    <h2>🤖 LangChain Enhanced Analysis</h2>
+    <div class="ai-section">
+        <h3>Comprehensive Security Analysis</h3>
+        <p><strong>Analysis Summary:</strong></p>
+        <ul>
+"""
+
+                        # Add KICS analysis if available
+                        if langchain_results.get("kics_analysis"):
+                            html_content += f"<li><strong>KICS Analysis:</strong> Enhanced analysis of {len(langchain_results.get('kics_analysis', {}).get('original_kics_results', {}).get('queries', []))} KICS findings</li>"
+
+                        # Add Steampipe analysis if available
+                        if langchain_results.get("steampipe_analysis"):
+                            html_content += f"<li><strong>Steampipe Analysis:</strong> Enhanced analysis of {len(langchain_results.get('steampipe_analysis', {}).get('original_steampipe_results', {}).get('queries', []))} Steampipe findings</li>"
+
+                        # Add comprehensive recommendations
+                        if langchain_results.get("comprehensive_recommendations"):
+                            recommendations = langchain_results.get("comprehensive_recommendations")
+                            if isinstance(recommendations, dict) and "output" in recommendations:
+                                recommendations_text = recommendations["output"]
+                            else:
+                                recommendations_text = str(recommendations)
+
+                            html_content += f"""
+        </ul>
+        <h4>Comprehensive Security Recommendations</h4>
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 10px 0;">
+            {markdown.markdown(recommendations_text)}
+        </div>
+    </div>
+"""
+                        else:
+                            html_content += "</ul></div>"
 
                     html_content += """
 </body>
@@ -1114,6 +1274,161 @@ Examples:
     else:
         print("\n✅ Scan completed - No security issues found!")
         print("🎉 Your infrastructure appears to follow security best practices!")
+
+
+# LangChain Integration Functions
+
+
+@handle_exception
+def run_enhanced_analysis_with_langchain(
+    kics_results: Optional[Dict[str, Any]] = None,
+    steampipe_results: Optional[Dict[str, Any]] = None,
+    enable_ai: bool = True,
+    reports_dir: str = "outputs/reports",
+) -> Dict[str, Any]:
+    """Run enhanced analysis using LangChain integration"""
+    if not LANGCHAIN_AVAILABLE:
+        print("❌ LangChain integration not available")
+        return {}
+
+    print("🚀 Running enhanced analysis with LangChain...")
+
+    try:
+        # Lazy import LangChain modules
+        DriftBuddyLangChain, create_langchain_integration, EnhancedSecurityAgent, create_enhanced_agent = _import_langchain()
+        if not all([DriftBuddyLangChain, create_langchain_integration, EnhancedSecurityAgent, create_enhanced_agent]):
+            print("❌ Failed to import LangChain modules")
+            return {}
+
+        # Initialize enhanced agent
+        agent = create_enhanced_agent()
+
+        # Run comprehensive analysis
+        analysis_results = agent.run_comprehensive_analysis(kics_results=kics_results, steampipe_results=steampipe_results)
+
+        # Generate enhanced report
+        report_path = agent.generate_security_report(analysis_results)
+
+        print(f"✅ Enhanced analysis completed. Report saved to: {report_path}")
+        return analysis_results
+
+    except Exception as e:
+        print(f"❌ Error in enhanced analysis: {str(e)}")
+        return {}
+
+
+@handle_exception
+def run_langchain_kics_analysis(kics_results: Dict[str, Any], reports_dir: str = "outputs/reports") -> Dict[str, Any]:
+    """Run LangChain-enhanced KICS analysis"""
+    if not LANGCHAIN_AVAILABLE:
+        print("❌ LangChain integration not available")
+        return kics_results
+
+    print("🔍 Running LangChain-enhanced KICS analysis...")
+
+    try:
+        # Lazy import LangChain modules
+        DriftBuddyLangChain, create_langchain_integration, EnhancedSecurityAgent, create_enhanced_agent = _import_langchain()
+        if not all([DriftBuddyLangChain, create_langchain_integration, EnhancedSecurityAgent, create_enhanced_agent]):
+            print("❌ Failed to import LangChain modules")
+            return kics_results
+
+        langchain_integration = create_langchain_integration()
+        enhanced_results = langchain_integration.enhance_kics_analysis(kics_results)
+
+        # Save enhanced results
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_path = os.path.join(reports_dir, f"langchain_kics_analysis_{timestamp}.json")
+        langchain_integration.save_analysis_to_file(enhanced_results, output_path)
+
+        return enhanced_results
+
+    except Exception as e:
+        print(f"❌ Error in LangChain KICS analysis: {str(e)}")
+        return kics_results
+
+
+@handle_exception
+def run_langchain_steampipe_analysis(steampipe_results: Dict[str, Any], reports_dir: str = "outputs/reports") -> Dict[str, Any]:
+    """Run LangChain-enhanced Steampipe analysis"""
+    if not LANGCHAIN_AVAILABLE:
+        print("❌ LangChain integration not available")
+        return steampipe_results
+
+    print("🔍 Running LangChain-enhanced Steampipe analysis...")
+
+    try:
+        # Lazy import LangChain modules
+        DriftBuddyLangChain, create_langchain_integration, EnhancedSecurityAgent, create_enhanced_agent = _import_langchain()
+        if not all([DriftBuddyLangChain, create_langchain_integration, EnhancedSecurityAgent, create_enhanced_agent]):
+            print("❌ Failed to import LangChain modules")
+            return steampipe_results
+
+        langchain_integration = create_langchain_integration()
+        enhanced_results = langchain_integration.enhance_steampipe_analysis(steampipe_results)
+
+        # Save enhanced results
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_path = os.path.join(reports_dir, f"langchain_steampipe_analysis_{timestamp}.json")
+        langchain_integration.save_analysis_to_file(enhanced_results, output_path)
+
+        return enhanced_results
+
+    except Exception as e:
+        print(f"❌ Error in LangChain Steampipe analysis: {str(e)}")
+        return steampipe_results
+
+
+@handle_exception
+def create_knowledge_base_from_documents(documents: List[str], reports_dir: str = "outputs/reports") -> bool:
+    """Create a knowledge base from security documents"""
+    if not LANGCHAIN_AVAILABLE:
+        print("❌ LangChain integration not available")
+        return False
+
+    print("📚 Creating knowledge base from documents...")
+
+    try:
+        # Lazy import LangChain modules
+        DriftBuddyLangChain, create_langchain_integration, EnhancedSecurityAgent, create_enhanced_agent = _import_langchain()
+        if not all([DriftBuddyLangChain, create_langchain_integration, EnhancedSecurityAgent, create_enhanced_agent]):
+            print("❌ Failed to import LangChain modules")
+            return False
+
+        from langchain.schema import Document
+
+        # Convert strings to Document objects
+        docs = [Document(page_content=doc) for doc in documents]
+
+        # Initialize enhanced agent and create knowledge base
+        agent = create_enhanced_agent()
+        agent.create_knowledge_base(docs)
+
+        print("✅ Knowledge base created successfully")
+        return True
+
+    except Exception as e:
+        print(f"❌ Error creating knowledge base: {str(e)}")
+        return False
+
+
+@handle_exception
+def query_knowledge_base(query: str) -> str:
+    """Query the knowledge base for security information"""
+    if not LANGCHAIN_AVAILABLE:
+        return "LangChain integration not available"
+
+    try:
+        # Lazy import LangChain modules
+        DriftBuddyLangChain, create_langchain_integration, EnhancedSecurityAgent, create_enhanced_agent = _import_langchain()
+        if not all([DriftBuddyLangChain, create_langchain_integration, EnhancedSecurityAgent, create_enhanced_agent]):
+            return "Failed to import LangChain modules"
+
+        agent = create_enhanced_agent()
+        return agent.query_knowledge_base(query)
+
+    except Exception as e:
+        return f"Error querying knowledge base: {str(e)}"
 
 
 if __name__ == "__main__":

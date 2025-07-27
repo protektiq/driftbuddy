@@ -48,7 +48,7 @@ WORKDIR /app
 
 # Copy application code
 COPY src/ ./src/
-COPY driftbuddy.py .
+COPY driftbuddy-cli.py .
 COPY pyproject.toml .
 COPY README.md .
 COPY LICENSE .
@@ -68,5 +68,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 # EXPOSE 8000
 
 # Default command
-ENTRYPOINT ["python", "driftbuddy.py"]
+ENTRYPOINT ["python", "driftbuddy-cli.py"]
 CMD ["--help"]

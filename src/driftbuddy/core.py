@@ -258,7 +258,18 @@ def run_kics_local(scan_path: str, output_dir: str) -> Dict[str, Any]:
 
     def run_kics_command(use_queries_path: bool = True) -> subprocess.CompletedProcess:
         """Run DriftBuddy engine command with optional queries path"""
-        cmd = ["kics", "scan", "-p", scan_path, "-o", output_dir, "--output-name", f"kics_results_{timestamp}.json", "--report-formats", "json"]
+        cmd = [
+            "kics",
+            "scan",
+            "-p",
+            scan_path,
+            "-o",
+            output_dir,
+            "--output-name",
+            f"kics_results_{timestamp}.json",
+            "--report-formats",
+            "json",
+        ]
 
         # Add queries path if available
         config = get_config()
@@ -268,13 +279,13 @@ def run_kics_local(scan_path: str, output_dir: str) -> Dict[str, Any]:
 
         # Display DriftBuddy ASCII art logo
         driftbuddy_logo = """
-   ######                        ######                             
-#     # #####  # ###### ##### #     # #    # #####  #####  #   # 
-#     # #    # # #        #   #     # #    # #    # #    #  # #  
-#     # #    # # #####    #   ######  #    # #    # #    #   #   
-#     # #####  # #        #   #     # #    # #    # #    #   #   
-#     # #   #  # #        #   #     # #    # #    # #    #   #   
-######  #    # # #        #   ######   ####  #####  #####    #  
+DDDDDDD   RRRRRRRR   IIIIII  FFFFFFF  TTTTTTT   BBBBBBB   UUU   UUU  DDDDDDD   DDDDDDD   YYYYYYY
+  DDDDDDDD  RRRRRRRRR   III    FFFFFF   TTTTTTT   BBBBBBBB  UUU   UUU  DDDDDDDD  DDDDDDDD   YYYYY
+  DDD  DDD  RRR   RRR   III    FFF        TTT     BBB   BB  UUU   UUU  DDD  DDD  DDD  DDD    YYY
+  DDD  DDD  RRRRRRRRR   III    FFFFFF     TTT     BBBBBBBB  UUU   UUU  DDD  DDD  DDD  DDD    YYY
+  DDD  DDD  RRR RRR     III    FFFFFF     TTT     BBBBBBB   UUU   UUU  DDD  DDD  DDD  DDD    YYY
+  DDDDDDDD  RRR  RRR    III    FFF        TTT     BBB   BB  UUU   UUU  DDDDDDDD  DDDDDDDD    YYY
+  DDDDDDD   RRR   RRR  IIIII  FFFF        TTT     BBBBBBBB   UUUUUUU   DDDDDDD   DDDDDDD     YYY 
                                                                                                         
     🔍 Infrastructure Security Analysis Tool
     🛡️  Keeping Your Infrastructure as Code Secure
@@ -332,7 +343,12 @@ def run_kics_local(scan_path: str, output_dir: str) -> Dict[str, Any]:
             # Exit code 60 usually means no files found or no issues detected
             print(f"ℹ️ DriftBuddy scan completed with exit code 60 (no issues found)")
             print(f"📄 Results saved to: {output_file}")
-            return {"success": True, "output_file": output_file, "stdout": result.stdout, "no_issues": True}
+            return {
+                "success": True,
+                "output_file": output_file,
+                "stdout": result.stdout,
+                "no_issues": True,
+            }
         else:
             # Try without queries path if first attempt failed
             print(f"⚠️ First DriftBuddy attempt failed (exit code: {result.returncode}), trying without queries path...")
@@ -349,7 +365,12 @@ def run_kics_local(scan_path: str, output_dir: str) -> Dict[str, Any]:
             elif result.returncode == 60:
                 print(f"ℹ️ DriftBuddy scan completed with exit code 60 (no issues found)")
                 print(f"📄 Results saved to: {output_file}")
-                return {"success": True, "output_file": output_file, "stdout": result.stdout, "no_issues": True}
+                return {
+                    "success": True,
+                    "output_file": output_file,
+                    "stdout": result.stdout,
+                    "no_issues": True,
+                }
             else:
                 print(f"❌ DriftBuddy local scan failed with exit code: {result.returncode}")
                 if result.stderr:
@@ -674,14 +695,44 @@ Examples:
         """,
     )
 
-    parser.add_argument("--scan-path", default=".", help="Path to scan for infrastructure files (default: current directory)")
-    parser.add_argument("--output-format", choices=["html", "md", "json", "all"], default="html", help="Output format for reports (default: html)")
-    parser.add_argument("--enable-ai", action="store_true", help="Enable AI-powered analysis and recommendations")
-    parser.add_argument("--reports-dir", default="outputs/reports", help="Directory to save reports (default: outputs/reports)")
-    parser.add_argument("--all", action="store_true", help="Run all available scans (KICS + Steampipe if available)")
+    parser.add_argument(
+        "--scan-path",
+        default=".",
+        help="Path to scan for infrastructure files (default: current directory)",
+    )
+    parser.add_argument(
+        "--output-format",
+        choices=["html", "md", "json", "all"],
+        default="html",
+        help="Output format for reports (default: html)",
+    )
+    parser.add_argument(
+        "--enable-ai",
+        action="store_true",
+        help="Enable AI-powered analysis and recommendations",
+    )
+    parser.add_argument(
+        "--reports-dir",
+        default="outputs/reports",
+        help="Directory to save reports (default: outputs/reports)",
+    )
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Run all available scans (KICS + Steampipe if available)",
+    )
     parser.add_argument("--kics-only", action="store_true", help="Run only KICS scan")
-    parser.add_argument("--steampipe-only", action="store_true", help="Run only Steampipe scan (requires cloud credentials)")
-    parser.add_argument("--cloud-provider", choices=["aws", "azure", "gcp"], default="aws", help="Cloud provider for Steampipe scans (default: aws)")
+    parser.add_argument(
+        "--steampipe-only",
+        action="store_true",
+        help="Run only Steampipe scan (requires cloud credentials)",
+    )
+    parser.add_argument(
+        "--cloud-provider",
+        choices=["aws", "azure", "gcp"],
+        default="aws",
+        help="Cloud provider for Steampipe scans (default: aws)",
+    )
     parser.add_argument("--test", action="store_true", help="Run functionality test only")
 
     args = parser.parse_args()

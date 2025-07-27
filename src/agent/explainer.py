@@ -117,7 +117,13 @@ def batch_generate_explanations(client: OpenAI, queries: List[Dict], max_workers
             # Single comprehensive prompt for the entire query
             response = client.chat.completions.create(
                 model="gpt-4o",
-                messages=[{"role": "system", "content": "You are a cybersecurity expert and business risk analyst."}, {"role": "user", "content": prompt}],
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a cybersecurity expert and business risk analyst.",
+                    },
+                    {"role": "user", "content": prompt},
+                ],
                 temperature=0,  # Deterministic output
                 max_tokens=1200,
             )
@@ -229,7 +235,11 @@ def parse_ai_response_for_fixes(ai_response: str, files: List[Dict]) -> List[str
     return fixes[: len(files)]  # Ensure we don't have more fixes than files
 
 
-def explain_findings(queries: List[Dict], output_html: Optional[str] = None, return_per_query: bool = False) -> Any:
+def explain_findings(
+    queries: List[Dict],
+    output_html: Optional[str] = None,
+    return_per_query: bool = False,
+) -> Any:
     """
     Generate AI-powered explanations for security findings with business risk context.
     If return_per_query is True, returns a list of markdown strings (one per query, in order).

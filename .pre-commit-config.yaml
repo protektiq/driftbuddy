@@ -3,7 +3,6 @@ repos:
     rev: v4.5.0
     hooks:
       - id: end-of-file-fixer
-        stages: [commit]
         require_serial: true
       # - id: check-yaml
       #   exclude: |
@@ -25,7 +24,6 @@ repos:
       - id: black
         language_version: python3
         args: [--line-length=160]
-        stages: [commit]
         require_serial: true
 
   - repo: https://github.com/pycqa/isort
@@ -33,7 +31,6 @@ repos:
     hooks:
       - id: isort
         args: [--profile=black, --line-length=88]
-        stages: [commit]
         require_serial: true
 
   - repo: https://github.com/pycqa/flake8
@@ -59,7 +56,6 @@ repos:
     hooks:
       - id: pyupgrade
         args: [--py38-plus]
-        stages: [commit]
         require_serial: true
 
   - repo: local

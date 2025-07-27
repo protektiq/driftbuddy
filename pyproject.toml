@@ -82,7 +82,7 @@ where = ["src"]
 "*" = ["*.json", "*.yaml", "*.yml", "*.md"]
 
 [tool.black]
-line-length = 88
+line-length = 160
 target-version = ['py38']
 include = '\.pyi?$'
 extend-exclude = '''

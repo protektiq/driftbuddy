@@ -102,7 +102,13 @@ class TestRiskAssessment:
                 "query_name": "AWS S3 Public Access",
                 "severity": "HIGH",
                 "description": "S3 bucket has public read access",
-                "files": [{"file_name": "test.tf", "line": 10, "issue": "Public access enabled"}],
+                "files": [
+                    {
+                        "file_name": "test.tf",
+                        "line": 10,
+                        "issue": "Public access enabled",
+                    }
+                ],
             }
         ]
 

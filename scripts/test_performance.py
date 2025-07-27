@@ -56,7 +56,7 @@ def analyze_performance(queries: List[Dict]) -> Dict:
         "estimated_old_time": estimated_old_time,
         "estimated_new_time": estimated_new_time,
         "time_savings": estimated_old_time - estimated_new_time,
-        "time_savings_percent": ((estimated_old_time - estimated_new_time) / estimated_old_time) * 100 if estimated_old_time > 0 else 0,
+        "time_savings_percent": (((estimated_old_time - estimated_new_time) / estimated_old_time) * 100 if estimated_old_time > 0 else 0),
     }
 
 

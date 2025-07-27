@@ -11,4 +11,3 @@ resource "azurerm_mssql_server_security_alert_policy" "negative" {
   retention_days = 20
   email_account_admins = true
 }
-

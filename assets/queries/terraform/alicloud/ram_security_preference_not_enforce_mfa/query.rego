@@ -7,7 +7,7 @@ CxPolicy[result] {
 	ram_users := [ram_users | docs := input.document; resource := docs[i].resource.alicloud_ram_user[name]; ram_users := {"id": docs[i].id, "name": name, "resource": resource}]
 	count(ram_users) > 0
     ram_user := ram_users[0]
-    not has_preference(input.document) 
+    not has_preference(input.document)
 
 	result := {
     	"documentId": ram_user.id,
@@ -17,7 +17,7 @@ CxPolicy[result] {
 		"searchKey": sprintf("alicloud_ram_user[%s]", [ram_user.name]),
 		"issueType": "MissingAttribute",
 		"keyExpectedValue": "alicloud_ram_security_preference resource should be defined",
-		"keyActualValue": "alicloud_ram_security_preference resource is not defined",        
+		"keyActualValue": "alicloud_ram_security_preference resource is not defined",
 		"searchLine": common_lib.build_search_line(["resource", "alicloud_ram_user", ram_user.name], []),
 	}
 }
@@ -45,7 +45,7 @@ CxPolicy[result] {
 		"keyActualValue": "'enforce_mfa_for_login' is not defined",
 		"searchLine": common_lib.build_search_line(["resource", "alicloud_ram_security_preference", name], []),
 		"remediation": "enforce_mfa_for_login = true",
-		"remediationType": "addition",	
+		"remediationType": "addition",
 	}
 }
 
@@ -53,7 +53,7 @@ CxPolicy[result] {
 	has_ram_user(input.document)
 	resource := input.document[id].resource.alicloud_ram_security_preference[name]
     resource.enforce_mfa_for_login == false
-	
+
 	result := {
     	"documentId": input.document[id].id,
 		"resourceType": "alicloud_ram_security_preference",
@@ -67,6 +67,6 @@ CxPolicy[result] {
 			"before": "false",
 			"after": "true"
 		}),
-		"remediationType": "replacement",	
+		"remediationType": "replacement",
 	}
 }

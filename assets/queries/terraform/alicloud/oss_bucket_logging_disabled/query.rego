@@ -7,7 +7,7 @@ CxPolicy[result] {
 
 	resource := input.document[i].resource.alicloud_oss_bucket[name]
     not common_lib.valid_key(resource,"logging")
-    
+
 	result := {
 		"documentId": input.document[i].id,
 		"resourceType": "alicloud_oss_bucket",
@@ -24,7 +24,7 @@ CxPolicy[result] {
 
 	resource := input.document[i].resource.alicloud_oss_bucket[name]
     resource.logging_isenable == false
-    
+
 	result := {
 		"documentId": input.document[i].id,
 		"resourceType": "alicloud_oss_bucket",

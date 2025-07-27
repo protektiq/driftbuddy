@@ -8,7 +8,7 @@ CxPolicy[result] {
 	not isAllowed(uses)
 	not isPinned(uses)
 	not isRelative(uses)
-	
+
 	result := {
 		"documentId": input.document[i].id,
 		"searchKey": sprintf("uses={{%s}}", [uses]),
@@ -33,4 +33,3 @@ isRelative(use){
 	allowed := ["./"]
     startswith(use,allowed[i])
 }
-

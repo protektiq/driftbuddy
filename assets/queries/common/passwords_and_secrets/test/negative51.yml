@@ -3,7 +3,7 @@ stages:
   parameters:
     environment:                      'foo'
     isSm9ChangeRequired:              true
-  
+
     isDedicatedSubscription:          'true'
     setResourceLock:                  'true'
     nameResourceLock:                 'PrdPreventAccidentalDeletion'
@@ -17,7 +17,7 @@ stages:
     # example 2 (empty string value)
     anotherAdminPassword:             ''                 # SET IN PIPELINE
 
-    serviceConnectionName:            'foo' 
+    serviceConnectionName:            'foo'
     subscriptionId:                   'foo'
     organisationalGroup:              'foo'        # Replace this with your own Organisational Group name.
     devOrganisationalGroup:           'foo'                                     # should be empty for none DEV env
@@ -39,5 +39,3 @@ stages:
     adfDeveloperGroup:                'foo'        # Group has access to ADF
     irName:                           'foo'
     irDescription:                    'foo'
-
-

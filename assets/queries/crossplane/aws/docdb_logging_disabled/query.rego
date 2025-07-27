@@ -32,7 +32,7 @@ CxPolicy[result] {
 	docs := input.document[i]
 	[path, resource] := walk(docs)
 	resource.kind == "DBCluster"
-	
+
 	spec := resource.spec
 	provider := spec.forProvider
 	logs := provider.enableCloudwatchLogsExports

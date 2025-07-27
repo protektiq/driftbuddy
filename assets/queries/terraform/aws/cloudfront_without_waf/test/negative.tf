@@ -140,6 +140,3 @@ resource "aws_cloudfront_distribution" "negative1" {
     aws_ecs_service.this
   ]
 }
-
-
-

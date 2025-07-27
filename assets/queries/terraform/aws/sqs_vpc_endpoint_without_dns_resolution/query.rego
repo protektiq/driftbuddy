@@ -31,7 +31,7 @@ CxPolicy[result] {
 	keyToCheck := common_lib.get_module_equivalent_key("aws", module.source, "aws_vpc", "enable_dns_support")
 
 	module[keyToCheck] == false
-	
+
 	result := {
 		"documentId": input.document[i].id,
 		"resourceType": "n/a",

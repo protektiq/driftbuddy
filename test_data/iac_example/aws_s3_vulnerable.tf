@@ -107,4 +107,4 @@ resource "aws_s3_bucket" "no_lifecycle_bucket" {
   tags = {
     Name = "No Lifecycle Bucket"
   }
-} 
+}

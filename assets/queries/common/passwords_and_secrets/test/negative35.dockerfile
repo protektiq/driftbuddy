@@ -5,4 +5,3 @@ RUN apk add --no-cache git \
     --global \
     url."https://${GIT_USER}:${GIT_TOKEN}@github.com".insteadOf \
     "https://github.com"
-

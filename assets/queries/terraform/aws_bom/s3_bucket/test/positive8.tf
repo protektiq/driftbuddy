@@ -53,10 +53,10 @@ resource "aws_s3_bucket_policy" "positive8" {
     {
       "Sid": "IPAllow",
       "Effect": "Allow",
-      "Principal" : { 
-        "AWS": [ 
+      "Principal" : {
+        "AWS": [
           "arn:aws:iam::123456789012:root",
-          "arn:aws:iam::555555555555:root" 
+          "arn:aws:iam::555555555555:root"
           ]
       },
       "Action": "s3:GetObject",

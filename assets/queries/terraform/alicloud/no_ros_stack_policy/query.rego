@@ -5,7 +5,7 @@ import data.generic.terraform as tf_lib
 
 CxPolicy[result] {
 	resource := input.document[i].resource.alicloud_ros_stack[name]
-	
+
 	not hasPolicy(resource)
 
 	result := {
@@ -22,7 +22,7 @@ CxPolicy[result] {
 
 CxPolicy[result] {
 	resource := input.document[i].resource.alicloud_ros_stack[name]
-	
+
 	not hasPolicyDuringUpdate(resource)
 
 	result := {

@@ -45,4 +45,3 @@ get_value_type(type) = typeName {
 } else = typeName {
 	typeName := type
 }
-

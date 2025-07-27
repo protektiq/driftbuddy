@@ -15,4 +15,3 @@ Resources:
         Type: MOCK
       MethodResponses:
         - StatusCode : "200"
-

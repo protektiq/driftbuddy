@@ -56,4 +56,3 @@ contentRule(rule, ruleTaint) {
 	verbs := rule[r].verbs
 	commonLib.compareArrays(ruleTaint, verbs)
 }
-

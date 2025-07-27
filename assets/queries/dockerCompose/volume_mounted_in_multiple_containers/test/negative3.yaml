@@ -11,4 +11,3 @@ services:
       - type: bind
         source: $ENVVAR/.whew/path/datapath
         target: "/data"
-        

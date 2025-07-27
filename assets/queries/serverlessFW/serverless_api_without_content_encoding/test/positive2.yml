@@ -4,4 +4,3 @@ provider:
   name: aws
   apiGateway:
     minimumCompressionSize: 10485760
-

@@ -18,7 +18,7 @@ CxPolicy[result] {
 		"searchKey": sprintf("resources.name={{%s}}.properties.allowed", [resource.name]),
 		"issueType": "IncorrectValue",
 		"keyExpectedValue": "'allowed.ports' to not include RDP port 3389",
-		"keyActualValue": "'allowed.ports' includes RDP port 3389", 
+		"keyActualValue": "'allowed.ports' includes RDP port 3389",
 		"searchLine": common_lib.build_search_line(["resources", idx, "properties", "allowed", a], []),
 	}
 }

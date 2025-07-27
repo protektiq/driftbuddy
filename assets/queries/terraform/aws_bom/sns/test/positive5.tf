@@ -16,10 +16,10 @@ resource "aws_sns_topic" "positive5" {
       ],
       "Effect": "Allow",
       "Resource": "aws_sns_topic.positive5.arn",
-      "Principal" : { 
-        "AWS": [ 
+      "Principal" : {
+        "AWS": [
           "arn:aws:iam::123456789012:root",
-          "arn:aws:iam::555555555555:root" 
+          "arn:aws:iam::555555555555:root"
           ]
       }
     }

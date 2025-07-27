@@ -8,7 +8,7 @@ CxPolicy[result] {
     version := resource.version
     to_number(version) < 3
     not common_lib.valid_key(service_parameters, "pids_limit")
-   
+
 	result := {
 		"documentId": sprintf("%s", [resource.id]),
 		"searchKey": sprintf("services.%s",[name]),
@@ -26,7 +26,7 @@ CxPolicy[result] {
     to_number(version) < 3
     pids_limit := service_parameters.pids_limit
     pids_limit == -1
-   
+
 	result := {
 		"documentId": sprintf("%s", [resource.id]),
 		"searchKey": sprintf("services.%s.pids_limit",[name]),

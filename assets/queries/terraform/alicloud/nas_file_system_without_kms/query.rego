@@ -6,7 +6,7 @@ import data.generic.terraform as tf_lib
 CxPolicy[result] {
 	resource := input.document[i].resource.alicloud_nas_file_system[name]
 	not common_lib.valid_key(resource, "encrypt_type")
-	
+
 	result := {
 		"documentId": input.document[i].id,
 		"resourceType": "alicloud_nas_file_system",

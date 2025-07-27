@@ -14,4 +14,3 @@ resources:
     type: gcp:compute:SSLPolicy
     properties:
       minTlsVersion: TLS_1_1
-      

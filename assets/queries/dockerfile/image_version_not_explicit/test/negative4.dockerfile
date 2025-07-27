@@ -10,5 +10,5 @@ RUN echo "depth3"
 FROM test3 AS test4
 RUN echo "depth4"
 
-FROM test4 
+FROM test4
 RUN echo "depth5"

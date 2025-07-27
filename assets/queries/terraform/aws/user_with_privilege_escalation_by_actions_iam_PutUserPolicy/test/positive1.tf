@@ -27,5 +27,3 @@ resource "aws_iam_policy_attachment" "test-attach" {
   roles      = [aws_iam_role.role.name]
   groups     = [aws_iam_group.group.name]
 }
-
-

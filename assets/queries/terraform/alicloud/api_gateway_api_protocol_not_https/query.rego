@@ -32,7 +32,7 @@ CxPolicy[result] {
 		"searchKey": sprintf("alicloud_api_gateway_api[%s].request_config.protocol", [name]),
 		"issueType": "IncorrectValue",
 		"keyExpectedValue": "'protocol' value should be 'HTTPS'",
-		"keyActualValue": "'protocol' value is 'HTTP' or 'HTTP,HTTPS'",	
+		"keyActualValue": "'protocol' value is 'HTTP' or 'HTTP,HTTPS'",
 		"searchLine": common_lib.build_search_line(["resource", "alicloud_api_gateway_api", name, "request_config", index, "protocol" ], []),
 	}
 }

@@ -6,9 +6,9 @@ import data.generic.terraform as tf_lib
 CxPolicy[result] {
 	resource := input.document[i].resource.alicloud_oss_bucket[name]
 	json_policy := resource.policy
-    
+
     tf_lib.allows_action_from_all_principals(json_policy, "delete")
-	
+
 	result := {
 		"documentId": input.document[i].id,
 		"resourceType": "alicloud_oss_bucket",

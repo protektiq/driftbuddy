@@ -51,4 +51,3 @@ Resources:
         sql_mode: IGNORE_SPACE
         max_allowed_packet: 1024
         innodb_buffer_pool_size: '{DBInstanceClassMemory*3/4}'
-

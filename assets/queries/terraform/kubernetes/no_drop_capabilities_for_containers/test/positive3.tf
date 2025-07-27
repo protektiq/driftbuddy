@@ -91,4 +91,3 @@ resource "kubernetes_pod" "test3" {
     dns_policy = "None"
   }
 }
-

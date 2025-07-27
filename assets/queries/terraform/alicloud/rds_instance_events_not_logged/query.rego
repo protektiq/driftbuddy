@@ -23,7 +23,7 @@ CxPolicy[result] {
 		"keyActualValue": sprintf("'%s' parameter is not defined", [log]),
 		"searchLine": common_lib.build_search_line(["resource", "alicloud_log_audit", name, "variable_map"], []),
 		"remediation": sprintf("%s = true",[log]),
-		"remediationType": "addition",	
+		"remediationType": "addition",
 	}
 }
 
@@ -46,7 +46,6 @@ CxPolicy[result] {
 			"before": "false",
 			"after": "true"
 		}),
-		"remediationType": "replacement",	
+		"remediationType": "replacement",
 	}
 }
-

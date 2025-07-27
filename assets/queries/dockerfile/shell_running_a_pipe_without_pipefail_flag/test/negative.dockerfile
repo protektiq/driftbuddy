@@ -4,4 +4,3 @@ SHELL [ "zsh", "-o","pipefail" ]
 RUN zsh ./some_output | ./some_script
 SHELL [ "/bin/bash", "-o","pipefail" ]
 RUN [ "/bin/bash", "./some_output", "./some_script" ]
-

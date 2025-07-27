@@ -12,4 +12,3 @@ resource "google_dns_managed_zone" "negative1" {
         }
     }
 }
-

@@ -10,7 +10,7 @@ CxPolicy[result] {
 
 	value.type == "Microsoft.Compute/virtualMachines"
 	not is_windows(value)
-	arm_lib.isDisabledOrUndefined(doc, value.properties, "osProfile.linuxConfiguration.disablePasswordAuthentication")	
+	arm_lib.isDisabledOrUndefined(doc, value.properties, "osProfile.linuxConfiguration.disablePasswordAuthentication")
 
 	issue := prepare_issue(doc, value)
 
@@ -48,7 +48,7 @@ prepare_issue(doc, resource) = issue {
 	}
 } else = issue {
 	not resource.properties.osProfile.linuxConfiguration.disablePasswordAuthentication
-	
+
 	issue := {
 		"resourceType": resource.type,
 		"resourceName": resource.name,

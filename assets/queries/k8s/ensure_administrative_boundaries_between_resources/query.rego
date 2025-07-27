@@ -7,7 +7,7 @@ listKinds := ["Pod", "Deployment", "DaemonSet", "StatefulSet", "ReplicaSet", "Re
 
 CxPolicy[result] {
     nsSearch := [nsSearch |res = input.document[_];
-					res.kind == listKinds[_]; 
+					res.kind == listKinds[_];
 					nspace := res.metadata.namespace;
                     nsSearch := {"namespace": nspace,"res": res.id, "name": res.metadata.name, "kind": res.kind}]
 

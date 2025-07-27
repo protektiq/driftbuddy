@@ -7,4 +7,3 @@ resource "aws_instance" "negative1" {
     Name = "HelloWorld"
   }
 }
-

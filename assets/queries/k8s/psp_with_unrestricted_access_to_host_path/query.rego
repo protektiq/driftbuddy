@@ -60,4 +60,3 @@ CxPolicy[result] {
 		"searchLine": common_lib.build_search_line(["spec", "allowedHostPaths", idx], ["readOnly"])
 	}
 }
-

@@ -25,4 +25,3 @@ resource "aws_kms_key" "negative1" {
   }
   POLICY
 }
-

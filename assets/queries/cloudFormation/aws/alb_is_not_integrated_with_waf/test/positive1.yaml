@@ -15,4 +15,3 @@ Resources:
             - My-SSLNegotiation-Policy
           SSLCertificateId: arn:aws:iam::123456789012:server-certificate/my-server-certificate
       Scheme: internet-facing
-

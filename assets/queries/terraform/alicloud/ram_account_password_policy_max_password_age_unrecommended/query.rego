@@ -7,7 +7,7 @@ CxPolicy[result] {
 	some i
 	resource := input.document[i].resource.alicloud_ram_account_password_policy[name]
     not common_lib.valid_key(resource, "max_password_age")
-    
+
     result := {
 		"documentId": input.document[i].id,
 		"resourceType": "alicloud_ram_account_password_policy",
@@ -26,7 +26,7 @@ CxPolicy[result] {
 	some i
 	resource := input.document[i].resource.alicloud_ram_account_password_policy[name]
     resource.max_password_age > 90
-    
+
     result := {
 		"documentId": input.document[i].id,
 		"resourceType": "alicloud_ram_account_password_policy",
@@ -41,7 +41,7 @@ CxPolicy[result] {
             "after": "12"
         }),
         "remediationType": "replacement",
-		
+
 	}
 }
 
@@ -49,7 +49,7 @@ CxPolicy[result] {
 	some i
 	resource := input.document[i].resource.alicloud_ram_account_password_policy[name]
     resource.max_password_age == 0
-    
+
     result := {
 		"documentId": input.document[i].id,
 		"resourceType": "alicloud_ram_account_password_policy",
@@ -63,6 +63,6 @@ CxPolicy[result] {
             "before": sprintf("%d", [resource.max_password_age]),
             "after": "12"
         }),
-        "remediationType": "replacement",		
+        "remediationType": "replacement",
 	}
 }

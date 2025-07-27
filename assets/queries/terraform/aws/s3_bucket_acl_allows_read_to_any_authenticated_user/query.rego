@@ -5,7 +5,7 @@ import data.generic.terraform as tf_lib
 
 # version before TF AWS 4.0
 CxPolicy[result] {
-	
+
 	resource := input.document[i].resource.aws_s3_bucket[name]
 	resource.acl == "authenticated-read"
 
@@ -41,7 +41,7 @@ CxPolicy[result] {
 
 # version after TF AWS 4.0
 CxPolicy[result] {
-	
+
 	input.document[_].resource.aws_s3_bucket[bucketName]
 	acl := input.document[i].resource.aws_s3_bucket_acl[name]
 	split(acl.bucket, ".")[1] == bucketName

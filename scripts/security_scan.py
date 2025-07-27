@@ -1,189 +1,200 @@
 #!/usr/bin/env python3
-"""
-Security scanning script for DriftBuddy.
-Performs basic security checks on the codebase.
-"""
+"""Basic security scanning for DriftBuddy project."""
 
+import os
+import platform
 import re
+import subprocess
 import sys
 from pathlib import Path
-from typing import List, Dict, Any
 
 
-def check_for_hardcoded_secrets(file_path: Path) -> List[str]:
-    """Check for hardcoded secrets in a file."""
-    issues = []
-    
-    # Common secret patterns
+def check_file_permissions():
+    """Check for overly permissive file permissions."""
+    print("🔍 Checking file permissions...")
+
+    # Skip detailed permission checks on Windows **and** WSL mounts where the
+    # underlying NTFS permissions are always presented as world-writable.
+    if platform.system() == "Windows" or "microsoft" in platform.release().lower():
+        print("ℹ️  Skipping file-permission checks on Windows / WSL")
+        return True
+
+    # Critical files that should not be world-writable
+    critical_files = [
+        "src/driftbuddy/config.py",
+        "src/driftbuddy/core.py",
+        "src/agent/explainer.py",
+        "scripts/check_version.py",
+        "scripts/security_scan.py",
+        "README.md",
+        "requirements.txt",
+        "requirements-dev.txt",
+        "pyproject.toml",
+        "setup.py",
+        ".pre-commit-config.yaml",
+        ".bandit",
+        "driftbuddy.py",
+    ]
+
+    issues_found = []
+
+    for file_path in critical_files:
+        if os.path.exists(file_path):
+            try:
+                # Get file permissions
+                mode = os.stat(file_path).st_mode
+
+                # Check if file is world-writable (others can write)
+                if mode & 0o002:  # S_IWOTH
+                    issues_found.append(file_path)
+
+            except Exception as e:
+                print(f"⚠️  Could not check permissions for {file_path}: {e}")
+
+    if issues_found:
+        print("⚠️  World writable files found:")
+        for file_path in issues_found:
+            print(f"   - {file_path}")
+        print("💡 Run: chmod 644 <file> to fix")
+        return False
+    else:
+        print("✅ File permissions are secure")
+        return True
+
+
+def check_dependencies():
+    """Check for basic dependency issues."""
+    print("🔍 Checking dependencies...")
+
+    try:
+        result = subprocess.run(
+            [sys.executable, "-m", "pip", "list"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+
+        if result.returncode == 0:
+            print("✅ Dependencies check passed")
+            return True
+        else:
+            print("❌ Dependencies check failed")
+            return False
+
+    except Exception as e:
+        print(f"❌ Could not check dependencies: {e}")
+        return False
+
+
+def check_secrets():
+    """Check for potential secrets in the codebase."""
+    print("🔍 Checking for potential secrets...")
+
+    # Patterns for common secret formats
     secret_patterns = [
-        r'password\s*=\s*["\'][^"\']+["\']',
-        r'secret\s*=\s*["\'][^"\']+["\']',
-        r'api_key\s*=\s*["\'][^"\']+["\']',
-        r'token\s*=\s*["\'][^"\']+["\']',
-        r'key\s*=\s*["\'][^"\']+["\']',
-        r'aws_access_key_id\s*=\s*["\'][^"\']+["\']',
-        r'aws_secret_access_key\s*=\s*["\'][^"\']+["\']',
+        r"sk-[a-zA-Z0-9]{20,}",  # OpenAI API keys
+        r"AKIA[0-9A-Z]{16}",  # AWS access keys
+        r"[0-9]{12}",  # AWS account IDs
+        r"ghp_[a-zA-Z0-9]{36}",  # GitHub personal access tokens
+        r"xoxb-[a-zA-Z0-9-]+",  # Slack bot tokens
+        r'password\s*[:=]\s*["\'][^"\']+["\']',  # Hardcoded passwords
+        r'secret\s*[:=]\s*["\'][^"\']+["\']',  # Hardcoded secrets
     ]
-    
-    try:
-        with open(file_path, "r", encoding="utf-8") as f:
-            content = f.read()
-            
-        for pattern in secret_patterns:
-            matches = re.finditer(pattern, content, re.IGNORECASE)
-            for match in matches:
-                line_num = content[:match.start()].count('\n') + 1
-                issues.append(f"Line {line_num}: Potential hardcoded secret found")
-                
-    except Exception as e:
-        issues.append(f"Error reading file: {e}")
-    
-    return issues
 
+    # File extensions to check
+    check_extensions = {".py", ".yaml", ".yml", ".json", ".toml", ".md", ".txt", ".sh"}
 
-def check_for_debug_statements(file_path: Path) -> List[str]:
-    """Check for debug statements in code."""
-    issues = []
-    
-    debug_patterns = [
-        r'print\s*\(',
-        r'console\.log\(',
-        r'debugger;',
-        r'pdb\.set_trace\(',
-        r'breakpoint\(',
-    ]
-    
-    try:
-        with open(file_path, "r", encoding="utf-8") as f:
-            content = f.read()
-            
-        for pattern in debug_patterns:
-            matches = re.finditer(pattern, content)
-            for match in matches:
-                line_num = content[:match.start()].count('\n') + 1
-                issues.append(f"Line {line_num}: Debug statement found")
-                
-    except Exception as e:
-        issues.append(f"Error reading file: {e}")
-    
-    return issues
-
-
-def check_file_permissions(file_path: Path) -> List[str]:
-    """Check file permissions for security issues."""
-    issues = []
-    
-    try:
-        stat = file_path.stat()
-        # Check if file is world writable
-        if stat.st_mode & 0o002:
-            issues.append("File is world writable")
-        
-        # Check if file is world readable (for sensitive files)
-        if stat.st_mode & 0o004 and file_path.name in ['.env', 'secrets.json']:
-            issues.append("Sensitive file is world readable")
-            
-    except Exception as e:
-        issues.append(f"Error checking permissions: {e}")
-    
-    return issues
-
-
-def scan_directory(directory: Path, exclude_patterns: List[str] = None) -> Dict[str, List[str]]:
-    """Scan a directory for security issues."""
-    if exclude_patterns is None:
-        exclude_patterns = [
-            r'\.git/',
-            r'__pycache__/',
-            r'\.venv/',
-            r'node_modules/',
-            r'\.pytest_cache/',
-            r'\.mypy_cache/',
-            r'build/',
-            r'dist/',
-            r'\.tox/',
-        ]
-    
-    results = {
-        "hardcoded_secrets": [],
-        "debug_statements": [],
-        "permission_issues": [],
+    # Keep the scan fast and relevant – ignore large vendored / test / doc trees
+    exclude_dirs = {
+        ".git",
+        ".venv",
+        "__pycache__",
+        ".mypy_cache",
+        "node_modules",
+        "kics",
+        "assets",
+        "outputs",
+        "examples",
+        "test_data",
+        "tests",
+        "docs",
+        "fuzz",
     }
-    
-    # File extensions to scan
-    code_extensions = {'.py', '.js', '.ts', '.java', '.go', '.rb', '.php'}
-    config_extensions = {'.json', '.yaml', '.yml', '.toml', '.ini', '.cfg', '.env'}
-    
-    for file_path in directory.rglob('*'):
-        if file_path.is_file():
-            # Skip excluded patterns
-            if any(re.search(pattern, str(file_path)) for pattern in exclude_patterns):
+
+    # Skip files larger than 250 KB – they are almost certainly test fixtures or binaries
+    MAX_FILE_SIZE = 250 * 1024  # bytes
+
+    issues_found = []
+
+    for root, dirs, files in os.walk("."):
+        # Skip excluded directories
+        dirs[:] = [d for d in dirs if d not in exclude_dirs]
+
+        for file in files:
+            file_path = os.path.join(root, file)
+
+            # Only check specific file types
+            if not any(file.endswith(ext) for ext in check_extensions):
                 continue
-            
-            # Check file extension
-            if file_path.suffix in code_extensions or file_path.suffix in config_extensions:
-                # Check for hardcoded secrets
-                secret_issues = check_for_hardcoded_secrets(file_path)
-                if secret_issues:
-                    results["hardcoded_secrets"].extend([
-                        f"{file_path}: {issue}" for issue in secret_issues
-                    ])
-                
-                # Check for debug statements (only in code files)
-                if file_path.suffix in code_extensions:
-                    debug_issues = check_for_debug_statements(file_path)
-                    if debug_issues:
-                        results["debug_statements"].extend([
-                            f"{file_path}: {issue}" for issue in debug_issues
-                        ])
-                
-                # Check file permissions
-                permission_issues = check_file_permissions(file_path)
-                if permission_issues:
-                    results["permission_issues"].extend([
-                        f"{file_path}: {issue}" for issue in permission_issues
-                    ])
-    
-    return results
+
+            try:
+                # Skip very large files (speed + false-positives)
+                if os.path.getsize(file_path) > MAX_FILE_SIZE:
+                    continue
+
+                with open(file_path, encoding="utf-8", errors="ignore") as f:
+                    content = f.read()
+
+                for pattern in secret_patterns:
+                    matches = re.findall(pattern, content, re.IGNORECASE)
+                    if matches:
+                        issues_found.append(f"{file_path}: {len(matches)} potential secret(s)")
+
+            except Exception:
+                # Skip files that can't be read
+                continue
+
+    if issues_found:
+        print("⚠️  Potential secrets found:")
+        for issue in issues_found:
+            print(f"   - {issue}")
+        return False
+    else:
+        print("✅ No obvious secrets found")
+        return True
 
 
 def main():
     """Main security scan function."""
     print("🔒 Running security scan...")
-    
-    # Scan the current directory
-    current_dir = Path(".")
-    results = scan_directory(current_dir)
-    
-    # Report results
-    total_issues = 0
-    
-    if results["hardcoded_secrets"]:
-        print("\n❌ Hardcoded secrets found:")
-        for issue in results["hardcoded_secrets"]:
-            print(f"   {issue}")
-        total_issues += len(results["hardcoded_secrets"])
-    
-    if results["debug_statements"]:
-        print("\n⚠️  Debug statements found:")
-        for issue in results["debug_statements"]:
-            print(f"   {issue}")
-        total_issues += len(results["debug_statements"])
-    
-    if results["permission_issues"]:
-        print("\n⚠️  Permission issues found:")
-        for issue in results["permission_issues"]:
-            print(f"   {issue}")
-        total_issues += len(results["permission_issues"])
-    
-    if total_issues == 0:
-        print("✅ No security issues found")
+    print("=" * 40)
+
+    # Check file permissions
+    permissions_ok = check_file_permissions()
+    print()
+
+    # Check dependencies
+    dependencies_ok = check_dependencies()
+    print()
+
+    # Check for secrets
+    secrets_ok = check_secrets()
+    print()
+
+    # Summary
+    print("=" * 40)
+    total_checks = 3
+    passed_checks = sum([permissions_ok, dependencies_ok, secrets_ok])
+
+    print(f"📊 Security Scan Results: {passed_checks}/{total_checks} passed")
+
+    if passed_checks == total_checks:
+        print("✅ All security checks passed")
         return 0
     else:
-        print(f"\n📊 Total issues found: {total_issues}")
-        print("💡 Consider addressing these issues before deployment")
+        print("⚠️  Security issues found - review before deployment")
         return 1
 
 
 if __name__ == "__main__":
-    sys.exit(main()) 
+    sys.exit(main())

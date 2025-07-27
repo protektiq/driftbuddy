@@ -55,5 +55,3 @@ resource "aws_kinesis_stream" "positive3" {
 
   encryption_type = "KMS"
 }
-
-

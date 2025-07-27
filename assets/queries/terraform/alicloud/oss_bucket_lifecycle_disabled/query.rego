@@ -7,7 +7,7 @@ CxPolicy[result] {
 	some i
 	resource := input.document[i].resource.alicloud_oss_bucket[name].lifecycle_rule[_]
 
-    resource["enabled"] == false 
+    resource["enabled"] == false
 
 	result := {
 		"documentId": input.document[i].id,

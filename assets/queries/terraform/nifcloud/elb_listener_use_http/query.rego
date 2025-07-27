@@ -31,7 +31,7 @@ getElbNetworkInterface (resource, interfaceRef) = output {
 }
 
 getNetworkInterfaces (networkInterface) = output {
-	not is_array(networkInterface) 
+	not is_array(networkInterface)
 	output := [networkInterface]
 } else = output {
 	output := networkInterface

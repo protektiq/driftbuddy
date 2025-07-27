@@ -139,4 +139,4 @@ resources:
         url: https://us-central1-my-project.cloudfunctions.net/vulnerable-function
       # INFO: No HTTPS-only configuration
       # httpsTrigger:
-      #   securityLevel: SECURE_ALWAYS 
+      #   securityLevel: SECURE_ALWAYS

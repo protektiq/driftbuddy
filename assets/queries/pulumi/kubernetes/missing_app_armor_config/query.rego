@@ -8,7 +8,7 @@ CxPolicy[result] {
 	resource.type == "kubernetes:core/v1:Pod"
 
 	metadata := resource.properties.metadata
-	annotations := metadata.annotations	
+	annotations := metadata.annotations
 	annotations != null
 	not hasExpectedKey(annotations)
 

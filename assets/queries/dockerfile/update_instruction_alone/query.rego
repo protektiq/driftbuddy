@@ -19,7 +19,7 @@ CxPolicy[result] {
     count(install) > 0
 
 	not checkFollowedBy(update, install)
-    
+
 	result := {
 		"documentId": input.document[i].id,
 		"searchKey": sprintf("FROM={{%s}}.RUN={{%s}}", [name, resource.Value[0]]),
@@ -42,7 +42,7 @@ CxPolicy[result] {
 
 	install := [x | x := getDetail(commandRefactor, pkg_installer[packageManager][_]); count(x) > 0]
     count(install) == 0
-	
+
     #Check if any of the next commands is RUN install Command and there is not Update Command
     nextResources := array.slice(input.document[i].command[name], n+1, count(input.document[i].command[name]))
     nextResource := nextResources[_]
@@ -51,13 +51,13 @@ CxPolicy[result] {
     count(nextPackages) > 0
     nextPackageManager := pkg[nextPackages[0]]
 	nextPackageManager == packageManager
-    
+
 	nextInstall := [x | x := getDetail(nextCommandRefactor, pkg_installer[nextPackageManager][_]); count(x) > 0]
     count(nextInstall) > 0
 
 	nextUpdate := [x | x := getDetail(nextCommandRefactor, pkg_updater[nextPackageManager][_]); count(x) > 0]
     count(nextUpdate) == 0
-    
+
     result := {
 		"documentId": input.document[i].id,
 		"searchKey": sprintf("FROM={{%s}}.RUN={{%s}}", [name, nextResource.Value[0]]),

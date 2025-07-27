@@ -24,4 +24,3 @@ resource "azurerm_kubernetes_cluster" "negative1" {
     network_policy = "azure"
   }
 }
-

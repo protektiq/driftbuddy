@@ -9,7 +9,7 @@ CxPolicy[result] {
 	specInfo := k8sLib.getSpecInfo(resource)
 	types := {"initContainers", "containers"}
 	container := specInfo.spec[types[x]][j]
-	
+
 	common_lib.inArray(container.command, "kubelet")
 	k8sLib.startWithFlag(container,"--event-qps")
 	not k8sLib.hasFlag(container, "--event-qps=0")
@@ -57,4 +57,3 @@ CxPolicy[result] {
 		"keyActualValue": "eventRecordQPS flag is not set to 0",
 	}
 }
-

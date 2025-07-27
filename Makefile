@@ -143,4 +143,4 @@ pre-commit-run: ## Run pre-commit on all files
 	pre-commit run --all-files
 
 pre-commit-update: ## Update pre-commit hooks
-	pre-commit autoupdate 
+	pre-commit autoupdate

@@ -152,10 +152,10 @@ def test_function_name():
     """Test description."""
     # Arrange
     mock_dependency = Mock()
-    
+
     # Act
     result = function_under_test(mock_dependency)
-    
+
     # Assert
     assert result == expected_value
 ```
@@ -177,11 +177,11 @@ def test_function_name():
    # Format code
    black src/ tests/
    isort src/ tests/
-   
+
    # Run linting
    flake8 src/ tests/
    mypy src/
-   
+
    # Run tests
    pytest
    ```
@@ -259,4 +259,4 @@ Please report security issues to security@driftbuddy.dev rather than creating a 
 
 ## License
 
-By contributing to DriftBuddy, you agree that your contributions will be licensed under the MIT License. 
+By contributing to DriftBuddy, you agree that your contributions will be licensed under the MIT License.

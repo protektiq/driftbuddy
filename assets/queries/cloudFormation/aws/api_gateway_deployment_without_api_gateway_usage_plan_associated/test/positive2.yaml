@@ -21,4 +21,3 @@ Resources:
         BurstLimit: 200
         RateLimit: 100
       UsagePlanName: Plan_ABC
-

@@ -89,7 +89,7 @@ CxPolicy[result] {
 	resource := input.document[i].command[name][_]
 	resource.Cmd == "run"
 
-	count(resource.Value) > 1 
+	count(resource.Value) > 1
 
     dockerLib.arrayContains(resource.Value, {"apk", "add"})
 

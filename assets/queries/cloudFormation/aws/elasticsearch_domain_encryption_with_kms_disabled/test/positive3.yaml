@@ -30,4 +30,3 @@ Resources:
             Resource: "arn:aws:es:us-east-1:846973539254:domain/test/*"
       AdvancedOptions:
         rest.action.multi.allow_explicit_index: "true"
-

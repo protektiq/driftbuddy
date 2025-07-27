@@ -122,4 +122,4 @@ This structure was created by reorganizing the original flat file structure:
 - Documentation moved to `docs/`
 - Generated outputs moved to `outputs/`
 - Import statements updated throughout the codebase
-- Default paths updated to use the new structure 
+- Default paths updated to use the new structure

@@ -26,4 +26,3 @@ Resources:
       TransitEncryptionEnabled: true
     UpdatePolicy:
       UseOnlineResharding: true
-

@@ -5,7 +5,7 @@ import data.generic.common as common_lib
 
 CxPolicy[result] {
 	document := input.document[i]
-	
+
 	common_lib.valid_key(document, "cniVersion")
 	plugin := document.plugins[j]
 	plugin.type == "flannel"
@@ -25,7 +25,7 @@ CxPolicy[result] {
 CxPolicy[result] {
 	document := input.document[i]
 	document.kind == "ConfigMap"
-	
+
 	cni:= json.unmarshal(document.data["cni-conf.json"])
     plugin := cni.plugins[j]
     plugin.type == "flannel"
@@ -41,4 +41,3 @@ CxPolicy[result] {
 		"searchLine": common_lib.build_search_line(["data", "cni-conf.json"], []),
 	}
 }
-

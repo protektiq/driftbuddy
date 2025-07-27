@@ -18,4 +18,3 @@ resources:
     properties:
       engine: memcached
       numCacheNodes: 1
-

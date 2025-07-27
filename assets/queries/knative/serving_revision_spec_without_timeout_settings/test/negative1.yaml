@@ -18,4 +18,4 @@ spec:
               memory: "128Mi"
               cpu: "500m"
       containerConcurrency: 100
-      timeoutSeconds: 600      
+      timeoutSeconds: 600

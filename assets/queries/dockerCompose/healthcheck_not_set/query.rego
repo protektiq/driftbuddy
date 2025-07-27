@@ -6,7 +6,7 @@ CxPolicy[result] {
 	resource := input.document[i]
 	service_parameters := resource.services[name]
     not common_lib.valid_key(service_parameters, "healthcheck")
-   
+
 	result := {
 		"documentId": sprintf("%s", [resource.id]),
 		"searchKey": sprintf("services.%s",[name]),
@@ -21,7 +21,7 @@ CxPolicy[result] {
 	resource := input.document[i]
 	service_parameters := resource.services[name]
     service_parameters.healthcheck.disable == true
-   
+
 	result := {
 		"documentId": sprintf("%s", [resource.id]),
 		"searchKey": sprintf("services.%s.healthcheck.disable",[name]),
@@ -37,7 +37,7 @@ CxPolicy[result] {
 	service_parameters := resource.services[name]
     test := service_parameters.healthcheck.test
     test == ["NONE"]
-   
+
 	result := {
 		"documentId": sprintf("%s", [resource.id]),
 		"searchKey": sprintf("services.%s.healthcheck.test",[name]),

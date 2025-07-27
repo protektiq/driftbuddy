@@ -8,39 +8,46 @@ Provides comprehensive risk assessment capabilities that consider:
 - Business Risk Level: Categorized risk level based on score
 """
 
-from enum import Enum
-from typing import Dict, List, Any, Optional, Tuple
-from dataclasses import dataclass
 import json
-from datetime import datetime
+from dataclasses import dataclass
+from enum import Enum
+from typing import Any, Dict, List
+
 
 class ImpactLevel(Enum):
     """Impact levels for business risk assessment (1-5 scale)."""
+
     CATASTROPHIC = (5, "Catastrophic")
     MAJOR = (4, "Major")
     MODERATE = (3, "Moderate")
     MINOR = (2, "Minor")
     INSIGNIFICANT = (1, "Insignificant")
 
+
 class LikelihoodLevel(Enum):
     """Likelihood levels for business risk assessment (1-5 scale)."""
+
     ALMOST_CERTAIN = (5, "Almost Certain")
     LIKELY = (4, "Likely")
     POSSIBLE = (3, "Possible")
     UNLIKELY = (2, "Unlikely")
     RARE = (1, "Rare")
 
+
 class BusinessRiskLevel(Enum):
     """Business risk levels based on Impact × Likelihood score."""
-    CRITICAL = (20, "Critical")      # Score 20-25
-    HIGH = (15, "High")              # Score 15-19
-    MEDIUM = (10, "Medium")          # Score 10-14
-    LOW = (5, "Low")                 # Score 5-9
-    MINIMAL = (1, "Minimal")         # Score 1-4
+
+    CRITICAL = (20, "Critical")  # Score 20-25
+    HIGH = (15, "High")  # Score 15-19
+    MEDIUM = (10, "Medium")  # Score 10-14
+    LOW = (5, "Low")  # Score 5-9
+    MINIMAL = (1, "Minimal")  # Score 1-4
+
 
 @dataclass
 class RiskAssessment:
     """Risk assessment for a security finding."""
+
     impact: ImpactLevel
     likelihood: LikelihoodLevel
     business_risk_score: int  # Impact × Likelihood
@@ -52,31 +59,32 @@ class RiskAssessment:
     cost_estimate: str
     time_to_fix: str
 
+
 class RiskMatrix:
     """Risk matrix for determining business risk levels using Impact × Likelihood calculation."""
-    
+
     @classmethod
     def calculate_business_risk_score(cls, impact: ImpactLevel, likelihood: LikelihoodLevel) -> int:
         """
         Calculate business risk score using Impact × Likelihood formula.
-        
+
         Args:
             impact: Impact level (1-5 scale)
             likelihood: Likelihood level (1-5 scale)
-            
+
         Returns:
             Business risk score (1-25 scale)
         """
         return impact.value[0] * likelihood.value[0]
-    
+
     @classmethod
     def determine_business_risk_level(cls, score: int) -> BusinessRiskLevel:
         """
         Determine business risk level based on calculated score.
-        
+
         Args:
             score: Business risk score (1-25)
-            
+
         Returns:
             Business risk level
         """
@@ -90,7 +98,7 @@ class RiskMatrix:
             return BusinessRiskLevel.LOW
         else:
             return BusinessRiskLevel.MINIMAL
-    
+
     # Business context descriptions with updated risk calculations
     BUSINESS_CONTEXTS = {
         # S3 Bucket Security Issues
@@ -102,7 +110,7 @@ class RiskMatrix:
             "cost": "$10K-100K+ (fines + incident response)",
             "time": "1-2 hours",
             "impact_score": 5,  # Catastrophic
-            "likelihood_score": 5  # Almost Certain
+            "likelihood_score": 5,  # Almost Certain
         },
         "s3_bucket_logging_disabled": {
             "impact": "Audit trail loss, compliance violations",
@@ -112,7 +120,7 @@ class RiskMatrix:
             "cost": "$5K-25K (compliance fines + audit costs)",
             "time": "2-4 hours",
             "impact_score": 3,  # Moderate
-            "likelihood_score": 2  # Unlikely
+            "likelihood_score": 2,  # Unlikely
         },
         "s3_bucket_without_versioning": {
             "impact": "Data loss, ransomware recovery issues",
@@ -122,7 +130,7 @@ class RiskMatrix:
             "cost": "$1K-10K (data recovery + business continuity)",
             "time": "4-8 hours",
             "impact_score": 2,  # Minor
-            "likelihood_score": 2  # Unlikely
+            "likelihood_score": 2,  # Unlikely
         },
         "aws_s3_bucket_public_access": {
             "impact": "Data breach, regulatory fines, reputation damage",
@@ -132,7 +140,7 @@ class RiskMatrix:
             "cost": "$10K-100K+ (fines + incident response)",
             "time": "1-2 hours",
             "impact_score": 5,  # Catastrophic
-            "likelihood_score": 5  # Almost Certain
+            "likelihood_score": 5,  # Almost Certain
         },
         "aws_iam_user_password_enabled": {
             "impact": "Account compromise, unauthorized access",
@@ -142,7 +150,7 @@ class RiskMatrix:
             "cost": "$5K-50K (incident response + remediation)",
             "time": "4-8 hours",
             "impact_score": 4,  # Major
-            "likelihood_score": 3  # Possible
+            "likelihood_score": 3,  # Possible
         },
         "aws_security_group_open_ports": {
             "impact": "Network compromise, lateral movement",
@@ -152,7 +160,7 @@ class RiskMatrix:
             "cost": "$20K-200K (incident response + data recovery)",
             "time": "2-4 hours",
             "impact_score": 5,  # Catastrophic
-            "likelihood_score": 4  # Likely
+            "likelihood_score": 4,  # Likely
         },
         "aws_ec2_instance_public_ip": {
             "impact": "Direct attack surface, data breach",
@@ -162,7 +170,7 @@ class RiskMatrix:
             "cost": "$15K-150K (incident response + system recovery)",
             "time": "2-6 hours",
             "impact_score": 4,  # Major
-            "likelihood_score": 4  # Likely
+            "likelihood_score": 4,  # Likely
         },
         "aws_rds_instance_publicly_accessible": {
             "impact": "Database compromise, data breach, regulatory fines",
@@ -172,7 +180,7 @@ class RiskMatrix:
             "cost": "$50K-500K+ (fines + data breach response)",
             "time": "1-4 hours",
             "impact_score": 5,  # Catastrophic
-            "likelihood_score": 5  # Almost Certain
+            "likelihood_score": 5,  # Almost Certain
         },
         "aws_lambda_function_public": {
             "impact": "Code execution, data access, service disruption",
@@ -182,7 +190,7 @@ class RiskMatrix:
             "cost": "$5K-25K (incident response + code review)",
             "time": "4-8 hours",
             "impact_score": 3,  # Moderate
-            "likelihood_score": 3  # Possible
+            "likelihood_score": 3,  # Possible
         },
         "kubernetes_pod_security_context": {
             "impact": "Container escape, host compromise",
@@ -192,7 +200,7 @@ class RiskMatrix:
             "cost": "$25K-100K (incident response + system recovery)",
             "time": "4-12 hours",
             "impact_score": 4,  # Major
-            "likelihood_score": 3  # Possible
+            "likelihood_score": 3,  # Possible
         },
         "kubernetes_secret_plaintext": {
             "impact": "Credential exposure, data breach",
@@ -202,7 +210,7 @@ class RiskMatrix:
             "cost": "$30K-300K (credential rotation + incident response)",
             "time": "2-8 hours",
             "impact_score": 5,  # Catastrophic
-            "likelihood_score": 4  # Likely
+            "likelihood_score": 4,  # Likely
         },
         "docker_container_root_user": {
             "impact": "Container escape, host compromise",
@@ -212,7 +220,7 @@ class RiskMatrix:
             "cost": "$20K-80K (incident response + system recovery)",
             "time": "4-8 hours",
             "impact_score": 4,  # Major
-            "likelihood_score": 3  # Possible
+            "likelihood_score": 3,  # Possible
         },
         "terraform_state_file_public": {
             "impact": "Infrastructure compromise, credential exposure",
@@ -222,7 +230,7 @@ class RiskMatrix:
             "cost": "$50K-500K+ (infrastructure rebuild + incident response)",
             "time": "8-24 hours",
             "impact_score": 5,  # Catastrophic
-            "likelihood_score": 5  # Almost Certain
+            "likelihood_score": 5,  # Almost Certain
         },
         # IAM Security Issues
         "iam_access_analyzer_not_enabled": {
@@ -233,20 +241,20 @@ class RiskMatrix:
             "cost": "$5K-20K (permission audit + cleanup)",
             "time": "8-16 hours",
             "impact_score": 4,  # Major
-            "likelihood_score": 3  # Possible
-        }
+            "likelihood_score": 3,  # Possible
+        },
     }
-    
+
     @classmethod
     def assess_risk(cls, query_name: str, severity: str, description: str) -> RiskAssessment:
         """
         Assess business risk for a security finding using Impact × Likelihood calculation.
-        
+
         Args:
             query_name: Name of the security query
             severity: Severity level (CRITICAL, HIGH, MEDIUM, LOW, INFO)
             description: Description of the security issue
-            
+
         Returns:
             RiskAssessment object with calculated risk metrics
         """
@@ -255,36 +263,36 @@ class RiskMatrix:
             query_name = str(query_name[0]) if query_name else "Unknown Query"
         elif not isinstance(query_name, str):
             query_name = str(query_name)
-        
+
         if not isinstance(severity, str):
             severity = str(severity)
-        
+
         if not isinstance(description, str):
             description = str(description)
-        
+
         # Determine impact and likelihood
         impact = cls._determine_impact(query_name, severity, description)
         likelihood = cls._determine_likelihood(query_name, severity, description)
-        
+
         # Calculate business risk score: Impact × Likelihood
         business_risk_score = cls.calculate_business_risk_score(impact, likelihood)
-        
+
         # Determine business risk level based on score
         business_risk = cls.determine_business_risk_level(business_risk_score)
-        
+
         # Get business context information with improved matching
         normalized_query = query_name.lower().replace(" ", "_").replace("-", "_")
-        
+
         # Try exact match first
         context_info = cls.BUSINESS_CONTEXTS.get(normalized_query, None)
-        
+
         # If no exact match, try partial matching
         if context_info is None:
             for key, value in cls.BUSINESS_CONTEXTS.items():
                 if any(word in normalized_query for word in key.split("_")) or any(word in key for word in normalized_query.split("_")):
                     context_info = value
                     break
-        
+
         # If still no match, use default
         if context_info is None:
             context_info = {
@@ -295,9 +303,9 @@ class RiskMatrix:
                 "cost": "$5K-50K (estimated incident response)",
                 "time": "4-8 hours",
                 "impact_score": 3,  # Default moderate
-                "likelihood_score": 3  # Default possible
+                "likelihood_score": 3,  # Default possible
             }
-        
+
         return RiskAssessment(
             impact=impact,
             likelihood=likelihood,
@@ -308,9 +316,9 @@ class RiskMatrix:
             business_context=context_info["context"],
             remediation_priority=context_info["priority"],
             cost_estimate=context_info["cost"],
-            time_to_fix=context_info["time"]
+            time_to_fix=context_info["time"],
         )
-    
+
     @classmethod
     def _determine_impact(cls, query_name: str, severity: str, description: str) -> ImpactLevel:
         """Determine impact level based on query type and severity."""
@@ -319,44 +327,57 @@ class RiskMatrix:
             query_name = str(query_name[0]) if query_name else "Unknown Query"
         elif not isinstance(query_name, str):
             query_name = str(query_name)
-        
+
         query_lower = query_name.lower()
-        
+
         # Catastrophic impact scenarios (Score 5)
-        if any(keyword in query_lower for keyword in [
-            "public", "exposed", "unencrypted", "plaintext", "secret", "credential", "database"
-        ]):
+        if any(
+            keyword in query_lower
+            for keyword in [
+                "public",
+                "exposed",
+                "unencrypted",
+                "plaintext",
+                "secret",
+                "credential",
+                "database",
+            ]
+        ):
             return ImpactLevel.CATASTROPHIC
-        
+
         # Major impact scenarios (Score 4)
-        if any(keyword in query_lower for keyword in [
-            "root", "admin", "privilege", "permission", "access", "network"
-        ]):
+        if any(
+            keyword in query_lower
+            for keyword in [
+                "root",
+                "admin",
+                "privilege",
+                "permission",
+                "access",
+                "network",
+            ]
+        ):
             return ImpactLevel.MAJOR
-        
+
         # Moderate impact scenarios (Score 3)
-        if any(keyword in query_lower for keyword in [
-            "logging", "monitoring", "audit", "compliance", "container"
-        ]):
+        if any(keyword in query_lower for keyword in ["logging", "monitoring", "audit", "compliance", "container"]):
             return ImpactLevel.MODERATE
-        
+
         # Minor impact scenarios (Score 2)
-        if any(keyword in query_lower for keyword in [
-            "version", "update", "patch", "configuration"
-        ]):
+        if any(keyword in query_lower for keyword in ["version", "update", "patch", "configuration"]):
             return ImpactLevel.MINOR
-        
+
         # Default based on severity
         severity_map = {
             "CRITICAL": ImpactLevel.CATASTROPHIC,
             "HIGH": ImpactLevel.MAJOR,
             "MEDIUM": ImpactLevel.MODERATE,
             "LOW": ImpactLevel.MINOR,
-            "INFO": ImpactLevel.INSIGNIFICANT
+            "INFO": ImpactLevel.INSIGNIFICANT,
         }
-        
+
         return severity_map.get(severity.upper(), ImpactLevel.MODERATE)
-    
+
     @classmethod
     def _determine_likelihood(cls, query_name: str, severity: str, description: str) -> LikelihoodLevel:
         """Determine likelihood level based on query type and context."""
@@ -365,80 +386,73 @@ class RiskMatrix:
             query_name = str(query_name[0]) if query_name else "Unknown Query"
         elif not isinstance(query_name, str):
             query_name = str(query_name)
-        
+
         query_lower = query_name.lower()
-        
+
         # Almost certain scenarios (Score 5)
-        if any(keyword in query_lower for keyword in [
-            "public", "exposed", "internet", "0.0.0.0", "database"
-        ]):
+        if any(
+            keyword in query_lower
+            for keyword in [
+                "public",
+                "exposed",
+                "internet",
+                "0.0.0.0",
+                "database",  # nosec B104
+            ]
+        ):
             return LikelihoodLevel.ALMOST_CERTAIN
-        
+
         # Likely scenarios (Score 4)
-        if any(keyword in query_lower for keyword in [
-            "default", "weak", "common", "known", "open"
-        ]):
+        if any(keyword in query_lower for keyword in ["default", "weak", "common", "known", "open"]):
             return LikelihoodLevel.LIKELY
-        
+
         # Possible scenarios (Score 3)
-        if any(keyword in query_lower for keyword in [
-            "privilege", "permission", "access", "container"
-        ]):
+        if any(keyword in query_lower for keyword in ["privilege", "permission", "access", "container"]):
             return LikelihoodLevel.POSSIBLE
-        
+
         # Unlikely scenarios (Score 2)
-        if any(keyword in query_lower for keyword in [
-            "logging", "monitoring", "audit", "version"
-        ]):
+        if any(keyword in query_lower for keyword in ["logging", "monitoring", "audit", "version"]):
             return LikelihoodLevel.UNLIKELY
-        
+
         # Rare scenarios (Score 1)
-        if any(keyword in query_lower for keyword in [
-            "deprecated", "legacy", "obsolete"
-        ]):
+        if any(keyword in query_lower for keyword in ["deprecated", "legacy", "obsolete"]):
             return LikelihoodLevel.RARE
-        
+
         # Default based on severity
         severity_map = {
             "CRITICAL": LikelihoodLevel.LIKELY,
             "HIGH": LikelihoodLevel.LIKELY,
             "MEDIUM": LikelihoodLevel.POSSIBLE,
             "LOW": LikelihoodLevel.UNLIKELY,
-            "INFO": LikelihoodLevel.RARE
+            "INFO": LikelihoodLevel.RARE,
         }
-        
+
         return severity_map.get(severity.upper(), LikelihoodLevel.POSSIBLE)
+
 
 def generate_risk_report(findings: List[Dict]) -> Dict[str, Any]:
     """
     Generate a comprehensive risk report with business context.
-    
+
     Args:
         findings: List of security findings
-        
+
     Returns:
         Dictionary containing risk analysis and recommendations
     """
     risk_assessments = []
-    risk_summary = {
-        "critical": 0,
-        "high": 0,
-        "medium": 0,
-        "low": 0,
-        "minimal": 0
-    }
-    
+    risk_summary = {"critical": 0, "high": 0, "medium": 0, "low": 0, "minimal": 0}
+
     total_estimated_cost = 0
-    total_estimated_time = 0
-    
+
     for finding in findings:
         query_name = finding.get("query_name", "Unknown")
         severity = finding.get("severity", "MEDIUM")
         description = finding.get("description", "")
-        
+
         # Assess business risk
         risk_assessment = RiskMatrix.assess_risk(query_name, severity, description)
-        
+
         # Add risk assessment to finding
         finding["risk_assessment"] = {
             "impact": risk_assessment.impact.value[1],
@@ -450,46 +464,46 @@ def generate_risk_report(findings: List[Dict]) -> Dict[str, Any]:
             "business_context": risk_assessment.business_context,
             "remediation_priority": risk_assessment.remediation_priority,
             "cost_estimate": risk_assessment.cost_estimate,
-            "time_to_fix": risk_assessment.time_to_fix
+            "time_to_fix": risk_assessment.time_to_fix,
         }
-        
+
         # Update summary
         risk_level_value = risk_assessment.business_risk.value[1]
-        
+
         print(f"🔍 Debug - risk_level_value type: {type(risk_level_value)}, value: {risk_level_value}")
-        
+
         # Ensure risk_level_value is a string before calling .lower()
         if isinstance(risk_level_value, (tuple, list)):
             risk_level_value = str(risk_level_value[0]) if risk_level_value else "medium"
         elif not isinstance(risk_level_value, str):
             risk_level_value = str(risk_level_value)
-        
+
         print(f"🔍 Debug - risk_level_value after conversion: {risk_level_value}")
-        
+
         risk_level = risk_level_value.lower()
         print(f"🔍 Debug - risk_level: {risk_level}")
-        
+
         # Map risk levels to expected summary keys
         risk_level_mapping = {
             "critical": "critical",
-            "high": "high", 
+            "high": "high",
             "medium": "medium",
             "low": "low",
             "minimal": "minimal",
             # Handle numeric string values
             "1": "minimal",
-            "2": "low", 
+            "2": "low",
             "3": "medium",
             "4": "high",
-            "5": "critical"
+            "5": "critical",
         }
-        
+
         # Use mapped key or default to "medium" if not found
         summary_key = risk_level_mapping.get(risk_level, "medium")
         print(f"🔍 Debug - summary_key: {summary_key}")
         print(f"🔍 Debug - risk_summary keys: {list(risk_summary.keys())}")
         risk_summary[summary_key] += 1
-        
+
         # Estimate costs (simplified calculation)
         cost_str = risk_assessment.cost_estimate
         if "$" in cost_str:
@@ -501,11 +515,11 @@ def generate_risk_report(findings: List[Dict]) -> Dict[str, Any]:
                 else:
                     avg_cost = int(cost_range)
                 total_estimated_cost += avg_cost
-            except:
+            except Exception:
                 pass
-        
+
         risk_assessments.append(risk_assessment)
-    
+
     return {
         "risk_assessments": risk_assessments,
         "risk_summary": risk_summary,
@@ -515,5 +529,5 @@ def generate_risk_report(findings: List[Dict]) -> Dict[str, Any]:
         "high_findings": risk_summary["high"],
         "medium_findings": risk_summary["medium"],
         "low_findings": risk_summary["low"],
-        "minimal_findings": risk_summary["minimal"]
-    } 
+        "minimal_findings": risk_summary["minimal"],
+    }

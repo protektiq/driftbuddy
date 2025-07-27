@@ -20,4 +20,3 @@ resources:
       resourceGroupName: res9101
       sku:
         name: Premium_LRS
-      

@@ -50,4 +50,3 @@ CxPolicy[result] {
 		"remediationType": "replacement",
 	}
 }
-

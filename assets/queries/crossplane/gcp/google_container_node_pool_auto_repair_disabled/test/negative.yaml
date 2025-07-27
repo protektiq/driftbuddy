@@ -10,11 +10,11 @@ spec:
       autoprovisioned: false
       enabled: true
       maxNodeCount: 5
-      minNodeCount: 3 
+      minNodeCount: 3
     clusterRef:
       name: eutuxia-cluster
-    initialNodeCount: 3 
+    initialNodeCount: 3
     config:
       machineType: n1-standard-1
     locations:
-      - "us-central1-a"    
+      - "us-central1-a"

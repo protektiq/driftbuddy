@@ -60,9 +60,9 @@ CxPolicy[result] {
 	doc := input.document[i]
 	_ := doc.resource.aws_cloudwatch_log_metric_filter[name]
 
-	
-	count([alarm | alarm := doc.resource.aws_cloudwatch_metric_alarm[_]; contains(alarm.metric_name, name)]) == 0 
-	
+
+	count([alarm | alarm := doc.resource.aws_cloudwatch_metric_alarm[_]; contains(alarm.metric_name, name)]) == 0
+
 	result := {
 		"documentId": input.document[i].id,
 		"resourceType": "aws_cloudwatch_log_metric_filter",
@@ -94,9 +94,9 @@ CxPolicy[result] {
 	    not check_expression_missing(filter);
 	    resourceName := path[count(path)-1]
 	]
-    
+
     resourceName := resourceNames[_]
-    
+
 	result := {
 		"documentId": input.document[i].id,
 		"resourceType": "aws_cloudwatch_log_metric_filter",

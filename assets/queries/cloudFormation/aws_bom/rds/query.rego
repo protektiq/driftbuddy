@@ -61,10 +61,10 @@ has_vpc_gateway_attached(subnet_gp_name){
 	res_subnet := input.document[_].Resources[subnet_name]
 	res_subnet.Type == "AWS::EC2::Subnet"
 	vpc_name := res_subnet.Properties.VpcId.Ref
-	
+
 	res_vpc_gateway := input.document[_].Resources[_]
 	res_vpc_gateway.Type == "AWS::EC2::VPCGatewayAttachment"
-	res_vpc_gateway.Properties.VpcId == vpc_name	
+	res_vpc_gateway.Properties.VpcId == vpc_name
 }
 
 ## get encryption functions
@@ -78,7 +78,7 @@ get_db_instance_encryption(resource) = encryption{
 	encryption := get_enc_for_aurora(resource)
 }
 
-# get encytion for instances with engines that are not aurora 
+# get encytion for instances with engines that are not aurora
 get_enc_for_not_aurora(resource) = encryption{
 	resource.Properties.StorageEncrypted == true
 	encryption := "encrypted"
@@ -90,7 +90,7 @@ get_enc_for_not_aurora(resource) = encryption{
 	dbInstanceIdentifier := cf_lib.get_name(resource.Properties.SourceDBInstanceIdentifier)
 
 	res_subnet_gp := input.document[_].Resources[dbInstanceIdentifier]
-	res_subnet_gp.Type == "AWS::RDS::DBInstance"	
+	res_subnet_gp.Type == "AWS::RDS::DBInstance"
 
 	encryption := get_encryption(res_subnet_gp)
 } else = encryption{
@@ -98,12 +98,12 @@ get_enc_for_not_aurora(resource) = encryption{
 	dbInstanceIdentifier := cf_lib.get_name(resource.Properties.SnapshotIdentifier)
 
 	res_subnet_gp := input.document[_].Resources[dbInstanceIdentifier]
-	res_subnet_gp.Type == "AWS::RDS::DBInstance"	
+	res_subnet_gp.Type == "AWS::RDS::DBInstance"
 
 	encryption := get_encryption(res_subnet_gp)
 } else = encryption{
 	encryption := "unencrypted"
-}	
+}
 
 get_encryption(resource) = encryption{
 	resource.Properties.StorageEncrypted == true
@@ -118,7 +118,7 @@ get_enc_for_aurora(resource) = encryption{
 
 	cluster := input.document[_].Resources[cluster_name]
 	cluster.Type == "AWS::RDS::DBCluster"
-	
+
 	encryption := get_cluster_enc(cluster)
 }
 
@@ -134,7 +134,7 @@ get_cluster_enc(resource)= encryption{
 	dbClusterIdentifier := cf_lib.get_name(resource.Properties.SourceDBClusterIdentifier)
 
 	dbCluster := input.document[_].Resources[dbClusterIdentifier]
-	dbCluster.Type == "AWS::RDS::DBCluster"	
+	dbCluster.Type == "AWS::RDS::DBCluster"
 
 	encryption := get_encryption(dbCluster)
 } else = encryption{
@@ -142,9 +142,9 @@ get_cluster_enc(resource)= encryption{
 	dbClusterIdentifier := cf_lib.get_name(resource.Properties.SnapshotIdentifier)
 
 	dbCluster := input.document[_].Resources[dbClusterIdentifier]
-	dbCluster.Type == "AWS::RDS::DBCluster"	
+	dbCluster.Type == "AWS::RDS::DBCluster"
 
 	encryption := get_encryption(dbCluster)
 } else = encryption{
 	encryption := "unencrypted"
-}	
+}

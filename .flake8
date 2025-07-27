@@ -1,0 +1,12 @@
+[flake8]
+max-line-length = 160
+extend-ignore = E203,W503,E501,F401,F541,E722,F841,E402,W291,W292,W293
+exclude =
+    tests/,
+    examples/,
+    scripts/,
+    test_data/,
+    demo_risk_calculation.py,
+    simple_risk_test.py,
+    test_error_fix.py,
+    test_risk_calculation.py

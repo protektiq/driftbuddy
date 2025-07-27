@@ -3,7 +3,7 @@
     "BasicReplicationGroup": {
       "Type": "AWS::ElastiCache::ReplicationGroup",
       "Properties": {
-          "AutomaticFailoverEnabled": true,            
+          "AutomaticFailoverEnabled": true,
           "CacheNodeType": "cache.r3.large",
           "CacheSubnetGroupName": {
               "Ref": "CacheSubnetGroup"

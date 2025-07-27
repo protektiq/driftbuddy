@@ -3,7 +3,7 @@ kind: PodSecurityPolicy
 metadata:
   name: example
 spec:
-  privileged: true 
+  privileged: true
   seLinux:
     rule: RunAsAny
   supplementalGroups:

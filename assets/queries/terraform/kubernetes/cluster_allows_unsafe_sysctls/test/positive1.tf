@@ -43,4 +43,3 @@ resource "kubernetes_pod_security_policy" "example" {
     read_only_root_filesystem = true
   }
 }
-

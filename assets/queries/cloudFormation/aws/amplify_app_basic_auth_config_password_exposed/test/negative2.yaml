@@ -21,4 +21,3 @@ Resources:
         EnableBasicAuth: true
         Password: !Ref ParentPassword
         Username: !Ref ParentUsername
-

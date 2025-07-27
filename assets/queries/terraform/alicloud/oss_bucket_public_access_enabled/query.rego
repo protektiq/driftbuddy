@@ -6,7 +6,7 @@ import data.generic.terraform as tf_lib
 CxPolicy[result] {
 	some i
 	resource := input.document[i].resource.alicloud_oss_bucket[name]
-    
+
     possibilities:={"public-read", "public-read-write"}
     resource.acl == possibilities[p]
 

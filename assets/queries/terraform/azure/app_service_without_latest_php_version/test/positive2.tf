@@ -23,6 +23,6 @@ resource "azurerm_windows_web_app" "example5" {
    site_config{
     application_stack{
       php_version = "v7.3"
-    }    
+    }
   }
 }

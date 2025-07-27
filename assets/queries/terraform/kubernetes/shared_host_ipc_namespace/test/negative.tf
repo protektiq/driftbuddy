@@ -54,6 +54,3 @@ resource "kubernetes_pod" "negative1" {
     dns_policy = "None"
   }
 }
-
-
-

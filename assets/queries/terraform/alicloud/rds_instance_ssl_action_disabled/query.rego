@@ -22,7 +22,7 @@ CxPolicy[result] {
             "before": "Close",
             "after": "Open"
         }),
-        "remediationType": "replacement",	
+        "remediationType": "replacement",
 	}
 }
 
@@ -41,6 +41,6 @@ CxPolicy[result] {
 		"keyActualValue": "'ssl_action' is not defined",
 		"searchLine": common_lib.build_search_line(["resource", "alicloud_db_instance", name], []),
 		"remediation": "ssl_action = \"Open\"",
-        "remediationType": "addition",	
+        "remediationType": "addition",
 	}
 }

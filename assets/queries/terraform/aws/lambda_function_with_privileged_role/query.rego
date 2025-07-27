@@ -125,4 +125,3 @@ hasPrivilegedPermissions(statement) = matching_actions {
 } else = matching_actions {
 	matching_actions := []
 }
-

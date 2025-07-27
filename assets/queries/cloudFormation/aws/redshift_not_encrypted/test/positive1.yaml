@@ -22,5 +22,3 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: !Sub ${DataBucketName}
-
-

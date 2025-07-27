@@ -11,4 +11,3 @@ Resources:
         - Key: MyTag
           Value: TagValue
     DeletionPolicy: Snapshot
-

@@ -3,7 +3,7 @@ module "s3_bucket" {
   bucket = "s3-tf-example-versioning"
   acl    = "private"
   version = "0.0.1"
-  
+
   versioning = [
     {
       enabled = true

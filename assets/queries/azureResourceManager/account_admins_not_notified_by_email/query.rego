@@ -11,7 +11,7 @@ CxPolicy[result] {
 	value.type == types[_]
 
 	properties := value.properties
-	
+
 	[state_value, _] := arm_lib.getDefaultValueFromParametersIfPresent(doc, properties.state)
 	[emailAccountAdmins_value, emailAccountAdmins_type] := arm_lib.getDefaultValueFromParametersIfPresent(doc, properties.emailAccountAdmins)
 
@@ -40,7 +40,7 @@ CxPolicy[result] {
 	properties := value.properties
 
 	[state_value, _] := arm_lib.getDefaultValueFromParametersIfPresent(doc, properties.state)
-	
+
 	lower(state_value) == "enabled"
 	not common_lib.valid_key(properties, "emailAccountAdmins")
 

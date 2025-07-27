@@ -13,7 +13,7 @@ CxPolicy[result] {
 
 	upper(resource.access) == "ALLOW"
 	upper(resource.direction) == "INBOUND"
-	
+
 	endswith(resource.source_address_prefix, "/0")
 	tf_lib.containsPort(resource, portNumber)
 	isTCPorUDP(protocol)

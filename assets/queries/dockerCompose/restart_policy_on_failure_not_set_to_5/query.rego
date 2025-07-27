@@ -9,7 +9,7 @@ CxPolicy[result] {
     splitted := split(restart, ":")
     attempts := splitted[1]
     to_number(attempts) != 5
-   
+
 	result := {
 		"documentId": sprintf("%s", [resource.id]),
 		"searchKey": sprintf("services.%s.restart",[name]),
@@ -27,7 +27,7 @@ CxPolicy[result] {
     restart_policy := deploy.restart_policy
     restart_policy.condition == "on-failure"
     restart_policy.max_attempts != 5
-   
+
 	result := {
 		"documentId": sprintf("%s", [resource.id]),
 		"searchKey": sprintf("services.%s.deploy.restart_policy.max_attempts",[name]),

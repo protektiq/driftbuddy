@@ -9,7 +9,7 @@ Resources:
         IndexDocument: index.html
         ErrorDocument: error.html
     DeletionPolicy: Retain
-  S3Bucket6:    
+  S3Bucket6:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: S3Bucket6

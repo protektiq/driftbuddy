@@ -5,8 +5,8 @@ import data.generic.terraform as tf_lib
 
 CxPolicy[result] {
 	resource := input.document[i].resource.aws_ssoadmin_permission_set[name]
-	session_duration := resource.session_duration 
-	
+	session_duration := resource.session_duration
+
 	more_than_one_hour(session_duration)
 
 	result := {

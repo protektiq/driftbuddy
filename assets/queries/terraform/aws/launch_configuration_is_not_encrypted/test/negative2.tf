@@ -19,7 +19,7 @@ module "asg" {
     }
  ]
 
-  root_block_device = [ 
+  root_block_device = [
     {
       volume_size = "50"
       volume_type = "gp2"

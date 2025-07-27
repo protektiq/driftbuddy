@@ -88,4 +88,3 @@ resource "google_compute_disk" "negative2" {
       sha256 = "A"
   }
 }
-

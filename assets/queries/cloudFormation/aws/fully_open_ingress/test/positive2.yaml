@@ -265,4 +265,3 @@ Resources:
     Properties:
       Path: /
       Roles: [!Ref 'EC2Role']
-

@@ -21,7 +21,7 @@ resource "aws_iam_policy" "admin_policy" {
 # HIGH: IAM user with admin access
 resource "aws_iam_user" "admin_user" {
   name = "admin-user"
-  
+
   tags = {
     Name = "Admin User"
   }
@@ -74,7 +74,7 @@ resource "aws_iam_role_policy" "excessive_role_policy" {
 # MEDIUM: IAM user with access keys
 resource "aws_iam_user" "access_key_user" {
   name = "access-key-user"
-  
+
   tags = {
     Name = "Access Key User"
   }
@@ -109,7 +109,7 @@ resource "aws_iam_policy" "unconditional_policy" {
 # LOW: IAM user without MFA
 resource "aws_iam_user" "no_mfa_user" {
   name = "no-mfa-user"
-  
+
   tags = {
     Name = "No MFA User"
   }
@@ -132,7 +132,7 @@ resource "aws_iam_role" "no_session_limit_role" {
       }
     ]
   })
-  
+
   # LOW: No max_session_duration specified
 }
 
@@ -140,4 +140,4 @@ resource "aws_iam_role" "no_session_limit_role" {
 resource "aws_iam_user" "untagged_user" {
   name = "untagged-user"
   # INFO: No tags for resource management
-} 
+}

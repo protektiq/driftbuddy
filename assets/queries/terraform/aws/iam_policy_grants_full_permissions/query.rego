@@ -48,4 +48,3 @@ CxPolicy[result] {
 		"searchLine": common_lib.build_search_line(["data", "aws_iam_policy_document", name], []),
 	}
 }
-

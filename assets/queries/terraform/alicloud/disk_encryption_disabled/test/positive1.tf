@@ -9,4 +9,3 @@ resource "alicloud_disk" "disk_encryption1" {
     Name = "TerraformTest"
   }
 }
-

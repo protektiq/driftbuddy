@@ -5,5 +5,3 @@ port: 20250
 serializeImagePulls: false
 evictionHard:
     memory.available:  "200Mi"
-
-

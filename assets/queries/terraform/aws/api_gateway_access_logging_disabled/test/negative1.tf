@@ -29,4 +29,3 @@ resource "aws_apigatewayv2_stage" "negative2" {
     logging_level   = "ERROR"
   }
 }
-

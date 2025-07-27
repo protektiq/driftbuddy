@@ -26,7 +26,7 @@ CxPolicy[result] {
 	service_parameters := resource.services[name]
     volumes := service_parameters.volumes
     volume := volumes[v]
-    
+
     dup(resource, name, volume)
 
 	result := {

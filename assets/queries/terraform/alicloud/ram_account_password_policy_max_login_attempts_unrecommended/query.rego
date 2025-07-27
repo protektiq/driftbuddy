@@ -7,7 +7,7 @@ CxPolicy[result] {
 	some i
 	resource := input.document[i].resource.alicloud_ram_account_password_policy[name]
     resource.max_login_attempts > 5
-    
+
     result := {
 		"documentId": input.document[i].id,
 		"resourceType": "alicloud_ram_account_password_policy",

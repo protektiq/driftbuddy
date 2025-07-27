@@ -13,4 +13,3 @@ Resources:
         EntryPoint:
           - "entrypoint1"
         WorkingDirectory: "workDir"
-

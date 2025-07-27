@@ -39,4 +39,3 @@ resource "aws_eks_cluster" "negative3" {
     security_group_ids = [ "aws_security_group.used_sg.id" ]
   }
 }
-

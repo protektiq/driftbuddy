@@ -37,4 +37,3 @@ resource "kubernetes_pod" "test2" {
   }
 
 }
-

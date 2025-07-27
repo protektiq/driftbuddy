@@ -6,7 +6,7 @@ CxPolicy[result] {
 	document := input.document[i]
 	kind := document.kind
 	kind == "Secret"
-	
+
     not hasExternalStorageSecretProviderClass(input)
 
 	result := {
@@ -27,5 +27,3 @@ hasExternalStorageSecretProviderClass(input_data){
 	spec := document.spec
 	common_lib.valid_key(spec, "provider")
 }
-
-

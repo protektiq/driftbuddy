@@ -190,8 +190,8 @@ resource "aws_security_group" "no_tags_sg" {
 # VPC for security groups
 resource "aws_vpc" "main" {
   cidr_block = "10.0.0.0/16"
-  
+
   tags = {
     Name = "Test VPC"
   }
-} 
+}

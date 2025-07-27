@@ -44,6 +44,3 @@ is_secure_transport(policyValue) {
 	is_equal(statement.Condition.Bool["acs:SecureTransport"], "true")
     tf_lib.anyPrincipal(statement)
 }
-
-
-

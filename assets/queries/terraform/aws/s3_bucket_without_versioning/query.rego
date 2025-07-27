@@ -9,7 +9,7 @@ CxPolicy[result] {
     bucket := input.document[i].resource.aws_s3_bucket[bucketName]
     not common_lib.valid_key(bucket, "versioning")  # version before TF AWS 4.0
     not tf_lib.has_target_resource(bucketName, "aws_s3_bucket_versioning")  # version after TF AWS 4.0
-	
+
     result := {
         "documentId": input.document[i].id,
         "resourceType": "aws_s3_bucket",

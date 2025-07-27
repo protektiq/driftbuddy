@@ -67,4 +67,4 @@ spec:
             - name: sec-ctx-vol
               mountPath: /data/demo
           securityContext:
-            allowPrivilegeEscalation: false        
+            allowPrivilegeEscalation: false

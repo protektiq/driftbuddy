@@ -8,7 +8,7 @@ CxPolicy[result] {
 
     not common_lib.valid_key(s3, "logging")  # version before TF AWS 4.0
     not tf_lib.has_target_resource(bucketName, "aws_s3_bucket_logging") # version after TF AWS 4.0
-    not is_logging_target(bucketName) 
+    not is_logging_target(bucketName)
 
     result := {
         "documentId": input.document[i].id,
@@ -27,7 +27,7 @@ CxPolicy[result] {
     module := input.document[i].module[name]
     keyToCheck := common_lib.get_module_equivalent_key("aws", module.source, "aws_s3_bucket", "logging")
     not common_lib.valid_key(module, keyToCheck)
-	
+
     result := {
         "documentId": input.document[i].id,
         "resourceType": "n/a",

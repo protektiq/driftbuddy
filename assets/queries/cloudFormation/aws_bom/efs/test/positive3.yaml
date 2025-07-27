@@ -13,4 +13,3 @@ Resources:
         FileSystemTags:
           - Key: Name
             Value: TestFileSystem
-    

@@ -87,4 +87,3 @@ getAuthorizedNetworks(networks) = list {
     is_object(networks)
     list := [networks]
 } else = null
-

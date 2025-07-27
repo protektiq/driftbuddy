@@ -8,7 +8,7 @@ CxPolicy[result] {
     sec_opt_array := service_parameters.security_opt
     sec_opt := sec_opt_array[a]
     contains(sec_opt,"seccomp:unconfined")
-    
+
 	result := {
 		"documentId": sprintf("%s", [resource.id]),
 		"searchKey": sprintf("services.%s.security_opt",[name]),

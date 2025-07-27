@@ -28,9 +28,9 @@ CxPolicy[result] {
 	}
 }
 
-getTrustedPath(container) = path{    
+getTrustedPath(container) = path{
     path:= split(flagValue(container, "--trusted-ca-file"),"=")[1]
-    
+
 }
 
 flagValue(container, flag) = val{
@@ -49,5 +49,5 @@ getClientPath(resource) = path {
     types := {"initContainers", "containers"}
     container := specInfo.spec[types[x]][j]
     common_lib.inArray(container.command, "kube-apiserver")
-    path:= split(flagValue(container, "--client-ca-file"),"=")[1]    
+    path:= split(flagValue(container, "--client-ca-file"),"=")[1]
 }

@@ -83,5 +83,3 @@ CxPolicy[result] {
         "remediationType": "addition",
 	}
 }
-
-

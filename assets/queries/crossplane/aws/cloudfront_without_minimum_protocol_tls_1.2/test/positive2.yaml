@@ -33,7 +33,7 @@ spec:
     - fromFieldPath: metadata.labels
   resources:
     - name: sample-cloudfront
-      base: 
+      base:
         apiVersion: cloudfront.aws.crossplane.io/v1alpha1
         kind: Distribution
         metadata:

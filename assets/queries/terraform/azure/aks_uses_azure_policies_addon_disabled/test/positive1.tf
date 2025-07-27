@@ -13,4 +13,3 @@ resource "azurerm_kubernetes_cluster" "positive1" {
    }
  }
 }
-

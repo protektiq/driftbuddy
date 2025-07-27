@@ -6,7 +6,7 @@ CxPolicy[result] {
 	resource := input.document[i]
 	service_parameters := resource.services[name]
     common_lib.valid_key(service_parameters, "cgroup_parent")
-   
+
 	result := {
 		"documentId": sprintf("%s", [resource.id]),
 		"searchKey": sprintf("services.%s.cgroup_parent",[name]),

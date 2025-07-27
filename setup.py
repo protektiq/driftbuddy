@@ -4,7 +4,7 @@ Setup script for DriftBuddy.
 Makes the package installable and resolves import issues.
 """
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 setup(
     name="driftbuddy",
@@ -28,4 +28,4 @@ setup(
             "driftbuddy=src.driftbuddy.core:main",
         ],
     },
-) 
+)

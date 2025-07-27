@@ -6,7 +6,7 @@ CxPolicy[result] {
 	stateful := input.document[i].resource.kubernetes_stateful_set[name]
 
 	count({x | 	resource := input.document[_].resource.kubernetes_service[x];
-				resource.spec.cluster_ip == "None"; 
+				resource.spec.cluster_ip == "None";
 				stateful.metadata.namespace == resource.metadata.namespace;
 				stateful.spec.service_name == resource.metadata.name;
 				match_labels(stateful.spec.template.metadata.labels, resource.spec.selector) == true}) == 0

@@ -97,4 +97,3 @@ CxPolicy[result] {
 		"keyActualValue": sprintf("Resources.%s.Properties.AutoDeployment.RetainStacksOnAccountRemoval is false", [name]),
 	}
 }
-

@@ -17,7 +17,7 @@ CxPolicy[result] {
 		"keyActualValue": "'sql_collector_status' is not defined",
 		"searchLine": common_lib.build_search_line(["resource", "alicloud_db_instance", name], []),
 		"remediation": "sql_collector_status = \"Enabled\"",
-        "remediationType": "addition",	
+        "remediationType": "addition",
 	}
 }
 
@@ -38,7 +38,7 @@ CxPolicy[result] {
             "before": "Disabled",
             "after": "Enabled"
         }),
-        "remediationType": "replacement",	
+        "remediationType": "replacement",
 	}
 }
 
@@ -57,7 +57,7 @@ CxPolicy[result] {
 		"keyActualValue": "'sql_collector_config_value' is not defined",
 		"searchLine": common_lib.build_search_line(["resource", "alicloud_db_instance", name], []),
 		"remediation": "sql_collector_config_value = 180",
-        "remediationType": "addition",	
+        "remediationType": "addition",
 	}
 }
 
@@ -78,6 +78,6 @@ CxPolicy[result] {
             "before": "30",
             "after": "180"
         }),
-        "remediationType": "replacement",	
+        "remediationType": "replacement",
 	}
 }

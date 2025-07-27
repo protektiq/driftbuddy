@@ -5,7 +5,7 @@ import data.generic.dockerfile as dockerLib
 CxPolicy[result] {
 	document := input.document[i]
 	commands = document.command
-	
+
 	commands[img][c].Cmd == "run"
 	dockerLib.check_multi_stage(img, commands)
 

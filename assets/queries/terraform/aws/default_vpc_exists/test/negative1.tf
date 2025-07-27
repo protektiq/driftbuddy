@@ -6,5 +6,3 @@ resource "aws_vpc" "negative1" {
     Name = "main"
   }
 }
-
-

@@ -21,10 +21,10 @@ resource "aws_sqs_queue" "positive4" {
     {
       "Sid": "First",
       "Effect": "Allow",
-      "Principal" : { 
-        "AWS": [ 
+      "Principal" : {
+        "AWS": [
           "arn:aws:iam::123456789012:root",
-          "arn:aws:iam::555555555555:root" 
+          "arn:aws:iam::555555555555:root"
           ]
       },
       "Action": "sqs:SendMessage",

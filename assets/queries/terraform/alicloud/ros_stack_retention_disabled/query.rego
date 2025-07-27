@@ -18,7 +18,7 @@ CxPolicy[result] {
 		"keyActualValue": sprintf("alicloud_ros_stack_instance[%s].retain_stacks is undefined", [name]),
 		"searchLine": common_lib.build_search_line(["resource", "alicloud_ros_stack_instance", name], []),
 		"remediation": "retain_stacks = true",
-		"remediationType": "addition",	
+		"remediationType": "addition",
 	}
 }
 
@@ -40,6 +40,6 @@ CxPolicy[result] {
 			"before": "false",
 			"after": "true"
 		}),
-		"remediationType": "replacement",	
+		"remediationType": "replacement",
 	}
 }

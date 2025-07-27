@@ -29,7 +29,7 @@ CxPolicy[result] {
 
 	common_lib.valid_key(document.provider, "environment")
 	not hasKMSarnAtProvider(document)
-	
+
 
 	result := {
 		"documentId": input.document[i].id,

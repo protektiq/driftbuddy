@@ -4,10 +4,10 @@ import data.generic.common as common_lib
 
 CxPolicy[result] {
 	resource := input.document[i]
-	service_parameters := resource.services[name]	
-    ipc := service_parameters.ipc    
+	service_parameters := resource.services[name]
+    ipc := service_parameters.ipc
  	ipc == "host"
-    
+
 	result := {
 		"documentId": sprintf("%s", [resource.id]),
 		"searchKey": sprintf("services.%s.privileged",[name]),

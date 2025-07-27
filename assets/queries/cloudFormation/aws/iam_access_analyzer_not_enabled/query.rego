@@ -20,5 +20,5 @@ CxPolicy[result] {
 		"keyExpectedValue": "'AWS::AccessAnalyzer::Analyzer' should be set",
 		"keyActualValue": "'AWS::AccessAnalyzer::Analyzer' is undefined",
 		"searchLine": common_lib.build_search_line(["Resources"], []),
-	}	
+	}
 }

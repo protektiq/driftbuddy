@@ -52,4 +52,3 @@ CxPolicy[result] {
 		"searchLine": common_lib.build_search_line(["playbooks", t, modules[m], sgs[s]], []),
 	}
 }
-

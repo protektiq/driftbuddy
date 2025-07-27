@@ -27,4 +27,3 @@ Resources:
           MetricsEnabled: 'true'
           DataTraceEnabled: 'false'
           ThrottlingBurstLimit: '555'
-

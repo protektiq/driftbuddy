@@ -7,4 +7,3 @@ resource "aws_iam_server_certificate" "test_cert22" {
 -----END RSA PRIVATE KEY-----
 EOF
 }
-

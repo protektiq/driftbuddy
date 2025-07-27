@@ -17,4 +17,3 @@ Resources:
           "eventType":"$context.eventType","routeKey":"$context.routeKey",
           "status":"$context.status","connectionId":"$context.connectionId"}
       MinimumCompressionSize: 114
-

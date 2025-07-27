@@ -147,4 +147,4 @@ The application logs performance metrics:
 
 - [OpenAI API Rate Limits](https://platform.openai.com/docs/guides/rate-limits)
 - [HTTP Performance Optimization](https://medium.com/@northvankiwiguy/how-long-is-a-curl-ec59af087ca8)
-- [Concurrent Processing Best Practices](https://docs.python.org/3/library/concurrent.futures.html) 
+- [Concurrent Processing Best Practices](https://docs.python.org/3/library/concurrent.futures.html)

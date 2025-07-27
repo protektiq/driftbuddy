@@ -27,6 +27,3 @@ Resources:
       Groups:
       - myexistinggroup1
       - !Ref mygroup
-
-
-

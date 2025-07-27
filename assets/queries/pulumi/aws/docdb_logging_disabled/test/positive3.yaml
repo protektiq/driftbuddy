@@ -3,7 +3,7 @@ runtime: nodejs
 
 config:
   aws:region: us-east-1
-  
+
 resources:
   aws:docdb/cluster:
     type: aws:docdb:Cluster

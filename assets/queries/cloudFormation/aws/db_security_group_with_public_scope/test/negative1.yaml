@@ -37,4 +37,3 @@ Resources:
         Ref: DBPassword
       VPCSecurityGroups:
       - !GetAtt DBEC2SecurityGroup.GroupId
-

@@ -14,4 +14,3 @@ resource "aws_cloudfront_distribution" "positive1" {
   default_root_object = "index.html"
 
   }
-  

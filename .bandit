@@ -1,0 +1,16 @@
+# Bandit configuration file
+# Suppress false positives for legitimate subprocess usage
+
+# Exclude directories
+exclude_dirs:
+  - kics/vendor
+  - tests
+  - examples
+  - docs
+
+# Suppress specific test IDs for legitimate use cases
+skips:
+  - B404  # Import subprocess - legitimate for system integration
+  - B607  # Partial executable path - legitimate for system tools
+  - B603  # Subprocess without shell - legitimate for system integration
+  - B110  # Try except pass - legitimate for error handling

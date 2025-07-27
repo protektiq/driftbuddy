@@ -11,4 +11,3 @@ spec:
     env:
     - name: FACEBOOK_TOKEN
       value: "EAACEdEose0cBA1bad3afsf2aew"
-

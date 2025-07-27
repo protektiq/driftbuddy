@@ -9,4 +9,3 @@ services:
   internal:
       build: internal
       pid: "host"
-

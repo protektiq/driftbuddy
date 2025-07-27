@@ -26,7 +26,7 @@ services:
 
   # Optional: Add a web interface service
   # driftbuddy-web:
-  #   build: 
+  #   build:
   #     context: .
   #     dockerfile: Dockerfile.web
   #   container_name: driftbuddy-web
@@ -45,4 +45,4 @@ networks:
 
 volumes:
   driftbuddy-data:
-    driver: local 
+    driver: local

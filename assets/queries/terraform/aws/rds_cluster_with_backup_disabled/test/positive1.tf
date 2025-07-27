@@ -7,4 +7,3 @@ resource "aws_rds_cluster" "postgresql" {
   master_password         = "bar"
   preferred_backup_window = "07:00-09:00"
 }
-

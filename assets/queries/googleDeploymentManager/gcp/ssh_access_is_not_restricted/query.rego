@@ -18,7 +18,7 @@ CxPolicy[result] {
 		"searchKey": sprintf("resources.name={{%s}}.properties.allowed[%d].ports=%s", [resource.name, ports]),
 		"issueType": "IncorrectValue",
 		"keyExpectedValue": sprintf("'allowed[%d].ports' to not include SSH port 22", [a]),
-		"keyActualValue": sprintf("'allowed[%d].ports' includes SSH port 22", [a]), 
+		"keyActualValue": sprintf("'allowed[%d].ports' includes SSH port 22", [a]),
 		"searchLine": common_lib.build_search_line(["resources", idx, "properties", "allowed", a, "ports"], []),
 	}
 }

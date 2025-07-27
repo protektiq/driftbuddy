@@ -18,4 +18,3 @@ Resources:
       Password: !Ref ParentMasterPassword
       ShortName: String
       Size: String
-

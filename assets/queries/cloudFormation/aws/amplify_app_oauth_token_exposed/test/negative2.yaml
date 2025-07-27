@@ -18,4 +18,3 @@ Resources:
       Name: NewAmpApp
       Repository: String
       OauthToken: !Ref ParentPassword
-

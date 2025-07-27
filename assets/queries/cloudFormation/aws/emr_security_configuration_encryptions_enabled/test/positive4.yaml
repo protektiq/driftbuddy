@@ -4,4 +4,3 @@ Resources:
     Properties:
        Name: String
        SecurityConfiguration: {}
-

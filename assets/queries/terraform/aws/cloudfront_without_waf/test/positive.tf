@@ -139,6 +139,3 @@ resource "aws_cloudfront_distribution" "positive1" {
     aws_ecs_service.this
   ]
 }
-
-
-

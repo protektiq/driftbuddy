@@ -27,7 +27,7 @@
     "queryName": "AKS Cluster Network Policy Not Configured",
     "severity": "MEDIUM",
     "line": 2,
-    "filename": "positive1.bicep"  
+    "filename": "positive1.bicep"
   },
   {
     "queryName": "AKS Cluster Network Policy Not Configured",

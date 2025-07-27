@@ -39,7 +39,7 @@ get_accessibility(resource) = info{
 }
 
 check_vpc_endpoint(resource) = info{
-	values := [x | 
+	values := [x |
 		vpc_endpoint := input.document[_].Resources[_]
 		vpc_endpoint.Type == "AWS::EC2::VPCEndpoint"
 		policy_doc := vpc_endpoint.Properties.PolicyDocument

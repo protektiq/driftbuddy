@@ -152,4 +152,3 @@ resource "kubernetes_pod" "positive2" {
     dns_policy = "None"
   }
 }
-

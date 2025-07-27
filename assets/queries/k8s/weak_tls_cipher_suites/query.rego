@@ -78,7 +78,7 @@ CxPolicy[result] {
     doc.kind == "KubeletConfiguration"
 	cipher := doc.tlsCipherSuites[_]
     not common_lib.inArray(strongCiphersConfig,cipher)
-	 
+
 	result := {
 		"documentId": doc.id,
 		"resourceType": doc.kind,

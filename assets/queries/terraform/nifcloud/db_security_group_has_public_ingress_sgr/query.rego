@@ -21,7 +21,7 @@ CxPolicy[result] {
 }
 
 getRules (rule) = output {
-	not is_array(rule) 
+	not is_array(rule)
 	output := [rule]
 } else = output {
 	output := rule

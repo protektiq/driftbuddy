@@ -164,8 +164,8 @@ DriftBuddy uses structured logging with correlation IDs:
 import structlog
 
 logger = structlog.get_logger()
-logger.info("Scan started", 
-           scan_id="abc123", 
+logger.info("Scan started",
+           scan_id="abc123",
            target_path="/path/to/scan",
            scan_type="kics")
 ```
@@ -377,4 +377,4 @@ For enterprise customers:
 
 ---
 
-This enterprise readiness guide ensures DriftBuddy meets the highest standards for production deployment in enterprise environments. 
+This enterprise readiness guide ensures DriftBuddy meets the highest standards for production deployment in enterprise environments.

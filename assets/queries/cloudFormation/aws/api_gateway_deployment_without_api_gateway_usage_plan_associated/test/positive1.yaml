@@ -7,4 +7,3 @@ Resources:
       RestApiId: !Ref MyRestApi
       Description: My deployment
       StageName: Prod
-

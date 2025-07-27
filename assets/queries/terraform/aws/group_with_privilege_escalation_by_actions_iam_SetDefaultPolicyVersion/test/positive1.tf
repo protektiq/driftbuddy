@@ -19,4 +19,3 @@ resource "aws_iam_group_policy" "test_inline_policy" {
     ]
   })
 }
-

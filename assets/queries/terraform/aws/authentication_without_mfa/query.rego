@@ -74,4 +74,3 @@ not_exists_mfa(statement) = mfa {
 	not contains(user, ":mfa/")
 	mfa := "false"
 }
-

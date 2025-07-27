@@ -7,7 +7,7 @@ CxPolicy[result] {
 	service_parameters := resource.services[name]
     sec_opt := service_parameters.security_opt
     not no_new_privileges(sec_opt)
-   
+
 	result := {
 		"documentId": sprintf("%s", [resource.id]),
 		"searchKey": sprintf("services.%s.security_opt",[name]),

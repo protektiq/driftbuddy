@@ -23,6 +23,6 @@ resource "azurerm_windows_web_app" "example5" {
    site_config{
     application_stack{
       python_version = "v2.7"
-    }    
+    }
   }
 }

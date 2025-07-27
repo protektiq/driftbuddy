@@ -17,4 +17,3 @@ resource "aws_lambda_function" "example" {
 
   role = aws_iam_role.lambda_exec.arn
 }
-

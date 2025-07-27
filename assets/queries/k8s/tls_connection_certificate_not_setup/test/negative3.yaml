@@ -11,6 +11,3 @@ spec:
       command: ["kubelet"]
       args: []
   restartPolicy: OnFailure
-
-
-

@@ -8,10 +8,10 @@ CxPolicy[result] {
 	task := ansLib.tasks[id][e]
     action := task[m]
     action.mode == "preserve"
-    
+
     modules_with_preserve := ["copy", "template"]
     count([x | x := modules_with_preserve[mp]; x == m]) == 0
-    
+
 	result := {
 		"documentId": id,
 		"resourceType": m,
@@ -26,7 +26,7 @@ CxPolicy[result] {
 CxPolicy[result] {
 	task := ansLib.tasks[id][_]
     modules := [
-        "archive", "community.general.archive", "assemble", "ansible.builtin.assemble", "copy", "ansible.builtin.copy", "file", "ansible.builtin.file", 
+        "archive", "community.general.archive", "assemble", "ansible.builtin.assemble", "copy", "ansible.builtin.copy", "file", "ansible.builtin.file",
         "get_url", "ansible.builtin.get_url", "template", "ansible.builtin.template",
     ]
 	action := task[modules[m]]
@@ -37,7 +37,7 @@ CxPolicy[result] {
 
 	not common_lib.valid_key(action, "recurse")
     not file_module(action, modules[m])
-    
+
     not common_lib.valid_key(action, "mode")
 
 	result := {

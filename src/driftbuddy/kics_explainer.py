@@ -1,9 +1,11 @@
-from openai import OpenAI
 import json
 import os
-import markdown
 from datetime import datetime
+
+import markdown
 from dotenv import load_dotenv
+from openai import OpenAI
+
 from .config import get_config
 
 # Load configuration
@@ -40,56 +42,59 @@ for query in queries:
     query_name = query.get("query_name")
     severity = query.get("severity", "UNKNOWN")
     description = query.get("description", "No description available")
-    
+
     # Get findings for this query
     findings = query.get("files", [])
-    
+
     if findings:
         has_findings = True
-        
+
         # Write query header
         with open(markdown_output, "a") as md_file:
             md_file.write(f"## {query_name}\n\n")
             md_file.write(f"**Severity:** {severity}\n\n")
             md_file.write(f"**Description:** {description}\n\n")
-        
+
         # Process each finding
         for finding in findings:
             file_path = finding.get("file_name", "Unknown file")
             line_number = finding.get("line", "Unknown line")
             issue = finding.get("issue", "No issue description")
-            
+
             # Generate AI explanation for this finding
             try:
                 prompt = f"""
                 Explain this security finding in simple terms:
-                
+
                 File: {file_path}
                 Line: {line_number}
                 Issue: {issue}
                 Severity: {severity}
-                
+
                 Provide:
                 1. What the problem is
                 2. Why it's a security risk
                 3. How to fix it
                 4. Best practices to prevent this
-                
+
                 Keep it concise and actionable.
                 """
-                
+
                 response = client.chat.completions.create(
                     model=config.settings.openai_model,
                     messages=[
-                        {"role": "system", "content": "You are a cybersecurity expert explaining security findings in clear, actionable terms."},
-                        {"role": "user", "content": prompt}
+                        {
+                            "role": "system",
+                            "content": "You are a cybersecurity expert explaining security findings in clear, actionable terms.",
+                        },
+                        {"role": "user", "content": prompt},
                     ],
                     max_tokens=config.settings.openai_max_tokens,
-                    temperature=0.3
+                    temperature=0.3,
                 )
-                
+
                 ai_explanation = response.choices[0].message.content.strip()
-                
+
                 # Write finding with AI explanation
                 with open(markdown_output, "a") as md_file:
                     md_file.write(f"### Finding in {file_path}:{line_number}\n\n")
@@ -97,7 +102,7 @@ for query in queries:
                     md_file.write("**AI Explanation:**\n\n")
                     md_file.write(f"{ai_explanation}\n\n")
                     md_file.write("---\n\n")
-                
+
             except Exception as e:
                 print(f"Error generating AI explanation for {file_path}: {e}")
                 # Write finding without AI explanation
@@ -113,14 +118,15 @@ if not has_findings:
         md_file.write("Great job! No security issues were detected in your infrastructure code.\n\n")
 
 # Convert to HTML
-with open(markdown_output, "r") as md_file:
+with open(markdown_output) as md_file:
     md_text = md_file.read()
 
 html_output = markdown.markdown(md_text, extensions=["fenced_code", "tables"])
 
 html_filename = markdown_output.replace(".md", ".html")
 with open(html_filename, "w") as html_file:
-    html_file.write(f"""
+    html_file.write(
+        f"""
 <!DOCTYPE html>
 <html>
 <head>
@@ -143,7 +149,8 @@ with open(html_filename, "w") as html_file:
     {html_output}
 </body>
 </html>
-    """)
+    """
+    )
 
 print(f"✅ KICS explanation generated:")
 print(f"   📄 Markdown: {markdown_output}")

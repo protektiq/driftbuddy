@@ -55,5 +55,3 @@ resources:
     bucket: sample-input5
     entity: allUsers
     role: OWNER
-
-

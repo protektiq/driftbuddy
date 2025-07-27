@@ -22,4 +22,3 @@ resource "aws_kinesis_firehose_delivery_stream" "negative2" {
     key_type = "AWS_OWNED_CMK"
   }
 }
-

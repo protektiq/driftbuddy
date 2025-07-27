@@ -8,7 +8,7 @@ CxPolicy[result] {
 	resource.Type == "AWS::S3::Bucket"
 
 	Properties := resource.Properties
-	not common_lib.valid_key(Properties, "PublicAccessBlockConfiguration") 
+	not common_lib.valid_key(Properties, "PublicAccessBlockConfiguration")
 
 	result := {
 		"documentId": input.document[i].id,
@@ -27,7 +27,7 @@ CxPolicy[result] {
 	resource.Type == "AWS::S3::Bucket"
 
 	PublicAccessBlockConfiguration := resource.Properties.PublicAccessBlockConfiguration
-	not common_lib.valid_key(PublicAccessBlockConfiguration, "IgnorePublicAcls") 
+	not common_lib.valid_key(PublicAccessBlockConfiguration, "IgnorePublicAcls")
 
 	result := {
 		"documentId": input.document[i].id,
@@ -46,7 +46,7 @@ CxPolicy[result] {
 	resource.Type == "AWS::S3::Bucket"
 
 	PublicAccessBlockConfiguration := resource.Properties.PublicAccessBlockConfiguration
-	PublicAccessBlockConfiguration.IgnorePublicAcls == false 
+	PublicAccessBlockConfiguration.IgnorePublicAcls == false
 
 	result := {
 		"documentId": input.document[i].id,

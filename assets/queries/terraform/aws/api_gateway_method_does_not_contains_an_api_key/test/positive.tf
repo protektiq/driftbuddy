@@ -12,4 +12,3 @@ resource "aws_api_gateway_method" "positive2" {
   authorization     = "NONE"
   api_key_required  = false
 }
-

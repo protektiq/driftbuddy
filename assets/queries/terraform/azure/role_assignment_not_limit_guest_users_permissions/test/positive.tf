@@ -9,7 +9,7 @@ resource "azurerm_role_definition" "example" {
   }
 
   assignable_scopes = [
-    data.azurerm_subscription.primary.id, 
+    data.azurerm_subscription.primary.id,
   ]
 }
 

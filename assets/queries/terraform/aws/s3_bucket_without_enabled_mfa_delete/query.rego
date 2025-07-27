@@ -128,7 +128,7 @@ CxPolicy[result] {
 
 # version after TF AWS 4.0
 CxPolicy[result] {
-	
+
 	input.document[_].resource.aws_s3_bucket[bucketName]
 
 	not tf_lib.has_target_resource(bucketName, "aws_s3_bucket_lifecycle_configuration")

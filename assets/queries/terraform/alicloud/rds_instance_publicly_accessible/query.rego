@@ -24,4 +24,3 @@ CxPolicy[result] {
 		"searchLine": common_lib.build_search_line(["resource", "alicloud_db_instance", name, "security_ips", x], []),
 	}
 }
-

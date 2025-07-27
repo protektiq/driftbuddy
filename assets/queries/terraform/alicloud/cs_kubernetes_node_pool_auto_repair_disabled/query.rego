@@ -6,8 +6,8 @@ import data.generic.terraform as tf_lib
 CxPolicy[result] {
 
 	resource := input.document[i].resource.alicloud_cs_kubernetes_node_pool[name]
-	
-	auto_repair := resource.management.auto_repair 
+
+	auto_repair := resource.management.auto_repair
     auto_repair == false
 
 	result := {
@@ -31,7 +31,7 @@ CxPolicy[result] {
 
 	resource := input.document[i].resource.alicloud_cs_kubernetes_node_pool[name]
     not common_lib.valid_key(resource, "management")
-	
+
 	result := {
 		"documentId": input.document[i].id,
 		"resourceType": "alicloud_cs_kubernetes_node_pool",
@@ -48,7 +48,7 @@ CxPolicy[result] {
 
 	resource := input.document[i].resource.alicloud_cs_kubernetes_node_pool[name]
     not common_lib.valid_key(resource.management, "auto_repair")
-	
+
 	result := {
 		"documentId": input.document[i].id,
 		"resourceType": "alicloud_cs_kubernetes_node_pool",

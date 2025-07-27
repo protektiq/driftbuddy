@@ -10,7 +10,7 @@ services:
     ports:
       - "8080:8080"
       - "3000:3000"
-    cap_add: 
+    cap_add:
       - all
     cap_drop:
       - SYS_CHROOT

@@ -322,4 +322,4 @@ steampipe query "SELECT name FROM aws_s3_bucket LIMIT 100"
 
 ---
 
-**Happy cloud scanning! ☁️🔍** 
+**Happy cloud scanning! ☁️🔍**

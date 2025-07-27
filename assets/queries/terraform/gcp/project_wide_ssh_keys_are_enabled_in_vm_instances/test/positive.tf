@@ -68,4 +68,3 @@ resource "google_compute_instance" "positive2" {
     scopes = ["userinfo-email", "compute-ro", "storage-ro"]
   }
 }
-

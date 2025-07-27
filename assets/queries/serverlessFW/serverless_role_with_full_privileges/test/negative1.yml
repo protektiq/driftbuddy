@@ -1,5 +1,5 @@
 service: service
-frameworkVersion: '2' 
+frameworkVersion: '2'
 provider:
   name: aws
   runtime: nodejs12.x
@@ -16,7 +16,7 @@ provider:
       permissionsBoundary: arn:aws:iam::123456789012:policy/boundaries
       tags:
         key: value
- 
+
 functions:
   hello:
     handler: handler.hello

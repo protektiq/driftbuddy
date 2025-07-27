@@ -24,6 +24,6 @@ resource "azurerm_linux_web_app" "example6" {
   site_config{
     application_stack{
       python_version = "2.7"
-    }    
+    }
   }
 }

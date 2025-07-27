@@ -6,8 +6,8 @@ CxPolicy[result] {
 
 	env := input.document[i].env["ACTIONS_ALLOW_UNSECURE_COMMANDS"]
 	env == true
-	
-	
+
+
 	result := {
 		"documentId": input.document[i].id,
 		"searchKey": sprintf("env.actions_allow_unsecure_commands={{%s}}", [env]),
@@ -22,8 +22,8 @@ CxPolicy[result] {
 
 	env := input.document[i].jobs[j].env["ACTIONS_ALLOW_UNSECURE_COMMANDS"]
 	env == true
-	
-	
+
+
 	result := {
 		"documentId": input.document[i].id,
 		"searchKey": sprintf("env.actions_allow_unsecure_commands={{%s}}", [env]),
@@ -38,8 +38,8 @@ CxPolicy[result] {
 
 	env := input.document[i].jobs[j].steps[k].env["ACTIONS_ALLOW_UNSECURE_COMMANDS"]
 	env == true
-	
-	
+
+
 	result := {
 		"documentId": input.document[i].id,
 		"searchKey": sprintf("env.actions_allow_unsecure_commands={{%s}}", [env]),
@@ -49,7 +49,3 @@ CxPolicy[result] {
         "searchLine": common_lib.build_search_line(["jobs", j, "steps", k, "env", "ACTIONS_ALLOW_UNSECURE_COMMANDS"],[])
 	}
 }
-
-
-
-

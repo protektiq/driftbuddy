@@ -17,16 +17,16 @@ metadata:
 spec:
   provider: azure
   parameters:
-    usePodIdentity: "true"              
-    keyvaultName: "<key Vault Name>"               
-    objects:  
+    usePodIdentity: "true"
+    keyvaultName: "<key Vault Name>"
+    objects:
       array:
         - {objectName: secret1, objectType: secret}
-        - {objectName: key1 , objectType: key}                                      
-    tenantId: "<tenant ID which the Key Vault sits under"            
-  secretObjects:                             
-  - secretName: appsecrets   
+        - {objectName: key1 , objectType: key}
+    tenantId: "<tenant ID which the Key Vault sits under"
+  secretObjects:
+  - secretName: appsecrets
     data:
-    - key: secret1                          
-      objectName: secret1                                        
-    type: Opaque  
+    - key: secret1
+      objectName: secret1
+    type: Opaque

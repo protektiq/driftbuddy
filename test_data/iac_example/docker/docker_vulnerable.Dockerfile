@@ -63,7 +63,7 @@ ENV DEBUG="true"
 # WORKDIR /app
 # COPY package*.json ./
 # RUN npm ci --only=production
-# 
+#
 # FROM node:16-alpine
 # WORKDIR /app
 # COPY --from=builder /app/node_modules ./node_modules
@@ -89,4 +89,4 @@ ENV DEBUG="true"
 # No structured logging setup
 
 # INFO: No proper signal handling
-# No graceful shutdown handling 
+# No graceful shutdown handling

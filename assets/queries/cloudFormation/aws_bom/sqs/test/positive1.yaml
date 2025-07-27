@@ -4,19 +4,19 @@ Resources:
     Properties:
       QueueName: "SampleQueue"
       KmsMasterKeyId: wewewewewewe
-  SampleSQSPolicy: 
+  SampleSQSPolicy:
     Type: AWS::SQS::QueuePolicy
-    Properties: 
-      Queues: 
+    Properties:
+      Queues:
         - !Ref MyQueue
-      PolicyDocument: 
-        Statement: 
-          - 
-            Action: 
-              - "SQS:SendMessage" 
+      PolicyDocument:
+        Statement:
+          -
+            Action:
+              - "SQS:SendMessage"
               - "SQS:ReceiveMessage"
             Effect: "Allow"
             Resource: "arn:aws:sqs:us-east-2:444455556666:queue2"
-            Principal:  
-              AWS: 
-                - "111122223333"  
+            Principal:
+              AWS:
+                - "111122223333"

@@ -16,7 +16,7 @@
       "x509":{
         "clientCAFile":"/var/lib/kubernetes/ca.pem"
       }
-    },  
+    },
     "featureGates": {
       "RotateKubeletClientCertificate": true,
       "RotateKubeletServerCertificate": true

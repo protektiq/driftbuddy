@@ -26,5 +26,3 @@ Resources:
       RestApiId:
         Ref: GreetingApi
       StageName: DummyStage
-
-

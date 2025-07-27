@@ -10,5 +10,5 @@ services:
     ports:
       - "8080:8080"
       - "3000:3000"
-    cap_drop: 
+    cap_drop:
       - all

@@ -22,4 +22,3 @@ resource "aws_cloudwatch_metric_alarm" "cis_network_gateway_changes_cw_alarm" {
   alarm_actions             = [aws_sns_topic.CIS_Alerts_SNS_Topic.arn]
   insufficient_data_actions = []
 }
-

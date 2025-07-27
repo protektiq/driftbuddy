@@ -2,11 +2,11 @@ resource "alicloud_oss_bucket" "bucket-securetransport1"{
         policy = <<POLICY
 {
         "Version": "1",
-        "Statement": 
+        "Statement":
         [
             {
                 "Effect": "Allow",
-                "Action": 
+                "Action":
                 [
                     "oss:RestoreObject",
                     "oss:ListObjects",
@@ -25,17 +25,17 @@ resource "alicloud_oss_bucket" "bucket-securetransport1"{
                     "oss:GetObjectVersionAcl",
                     "oss:RestoreObjectVersion"
                 ],
-                "Principal": 
+                "Principal":
                 [
                     "*"
                 ],
-                "Resource": 
+                "Resource":
                 [
                     "acs:oss:*:0000111122223334:af/*"
                 ],
-                "Condition": 
+                "Condition":
                 {
-                    "Bool": 
+                    "Bool":
                     {
                         "acs:SecureTransport": [ "false" ]
                     }
@@ -46,5 +46,3 @@ resource "alicloud_oss_bucket" "bucket-securetransport1"{
 POLICY
 
 }
-    
-

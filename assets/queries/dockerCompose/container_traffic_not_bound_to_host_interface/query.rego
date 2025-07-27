@@ -9,7 +9,7 @@ CxPolicy[result] {
     ports := service_parameters.ports
     port := ports[v]
     check_ports(port)
-	
+
 	result := {
 		"documentId": sprintf("%s", [resource.id]),
 		"searchKey": sprintf("services.%s.ports",[name]),

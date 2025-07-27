@@ -10,7 +10,7 @@ CxPolicy[result] {
 	policy := common_lib.json_unmarshal(resource.policy)
 	st := common_lib.get_statement(policy)
 	statement := st[_]
- 
+
 
 	check_iam_action(statement) == true
 	not check_iam_resource(statement)

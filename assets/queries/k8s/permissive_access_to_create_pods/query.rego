@@ -37,7 +37,7 @@ CxPolicy[result] {
 	rules[j].verbs[l] == create
     notCustom(rules[j].apiGroups)
     isWildCardValue(rules[j].resources[k])
-	
+
 	result := {
 		"documentId": input.document[i].id,
 		"resourceType": document.kind,

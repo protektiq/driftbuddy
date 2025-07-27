@@ -7,5 +7,3 @@ tlsCertFile: "someFile.txt"
 tlsPrivateKeyFile: "someFile.txt"
 evictionHard:
     memory.available:  "200Mi"
-
-

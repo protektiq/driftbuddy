@@ -69,5 +69,3 @@ unrestricted_cidr(ec2SecurityGroup) {
 	options := {"0.0.0.0/0", "::/0"}
 	ec2SecurityGroup.Properties.SecurityGroupIngress[j].CidrIp == options[_]
 }
-
-

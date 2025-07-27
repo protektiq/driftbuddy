@@ -8,7 +8,7 @@ CxPolicy[result] {
 	resource := input.document[i].resource.azurerm_app_service[name]
 	python_version := resource.site_config.python_version
     to_number(python_version) != 3.10
-    
+
 	result := {
 		"documentId": input.document[i].id,
 		"resourceType": "azurerm_app_service",
@@ -26,7 +26,7 @@ CxPolicy[result] {
 	resource := input.document[i].resource.azurerm_windows_web_app[name]
     python_version := resource.site_config.application_stack.python_version
 	python_version != "v3.10"
-    
+
 	result := {
 		"documentId": input.document[i].id,
 		"resourceType": "azurerm_windows_web_app",
@@ -44,7 +44,7 @@ CxPolicy[result] {
 	resource := input.document[i].resource.azurerm_linux_web_app[name]
     python_version := resource.site_config.application_stack.python_version
 	to_number(python_version) != 3.10
-    
+
 	result := {
 		"documentId": input.document[i].id,
 		"resourceType": "azurerm_linux_web_app",

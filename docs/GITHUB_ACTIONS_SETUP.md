@@ -161,7 +161,7 @@ on:
     paths:
       - 'staging/**'
 
-# .github/workflows/driftbuddy-production.yml  
+# .github/workflows/driftbuddy-production.yml
 name: DriftBuddy Production Scan
 on:
   push:
@@ -188,4 +188,4 @@ If you encounter issues:
 
 ---
 
-**Happy scanning! 🛡️** 
+**Happy scanning! 🛡️**

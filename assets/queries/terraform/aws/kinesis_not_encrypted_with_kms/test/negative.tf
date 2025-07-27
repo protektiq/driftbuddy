@@ -17,4 +17,3 @@ resource "aws_kinesis_stream" "negative1" {
 
   kms_key_id = "alias/aws/kinesis"
 }
-

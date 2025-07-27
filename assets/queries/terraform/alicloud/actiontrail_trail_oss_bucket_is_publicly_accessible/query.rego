@@ -11,7 +11,7 @@ CxPolicy[result] {
     possibilities:={"public-read", "public-read-write"}
     bucket.bucket == bucket_name
     bucket.acl == possibilities[p]
-    
+
     result := {
         "documentId": input.document[i].id,
         "resourceType": "alicloud_oss_bucket",

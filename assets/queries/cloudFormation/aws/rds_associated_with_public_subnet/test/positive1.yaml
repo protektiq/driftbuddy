@@ -12,14 +12,14 @@ Resources:
     DBSubnetGroupName:
        Ref: myDBSubnetGroup
   DeletionPolicy: Snapshot
- myDBSubnetGroup: 
-    Properties: 
+ myDBSubnetGroup:
+    Properties:
       DBSubnetGroupDescription: description
-      SubnetIds: 
+      SubnetIds:
         - Ref: mySubnet1
         - Ref: mySubnet2
-      Tags: 
-        - 
+      Tags:
+        -
           Key: String
           Value: String
     Type: "AWS::RDS::DBSubnetGroup"

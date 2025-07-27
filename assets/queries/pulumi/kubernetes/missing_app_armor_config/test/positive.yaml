@@ -48,5 +48,3 @@ resources:
             ports:
              - containerPort: 80
         type: kubernetes:core/v1:Pod
-
-

@@ -119,4 +119,3 @@ Outputs:
     Value: !GetAtt
       - key
       - Arn
-

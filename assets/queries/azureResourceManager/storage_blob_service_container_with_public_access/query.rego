@@ -78,7 +78,7 @@ CxPolicy[result] {
 
 CxPolicy[result] {
 	doc := input.document[i]
-    
+
 	[path, value] = walk(doc)
 	value.type == "Microsoft.Storage/storageAccounts"
 
@@ -87,7 +87,7 @@ CxPolicy[result] {
 
 	[subchildPath, subchildValue] := walk(childValue.resources)
 	subchildValue.type == "containers"
-    
+
 	[val, val_type] := arm_lib.getDefaultValueFromParametersIfPresent(doc, subchildValue.properties.publicAccess)
 	val == publicOptions[o]
 

@@ -6,4 +6,3 @@ resource "aws_security_group_rule" "negative1" {
   cidr_blocks       = ["0.0.2.0/0"]
   security_group_id = aws_security_group.default.id
 }
-

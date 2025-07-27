@@ -221,4 +221,4 @@ resource appServicePlan 'Microsoft.Web/serverfarms@2021-02-01' = {
     name: 'B1'
     tier: 'Basic'
   }
-} 
+}

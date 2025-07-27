@@ -27,4 +27,3 @@ using_unrecommended_version(resource){
 	latest_version := common_lib.get_version("gke")
 	not startswith(resource.node_version, latest_version)
 }
-

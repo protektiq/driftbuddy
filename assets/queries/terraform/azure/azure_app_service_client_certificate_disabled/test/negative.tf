@@ -21,4 +21,3 @@ resource "azurerm_app_service" "negative" {
     value = "Server=some-server.mydomain.com;Integrated Security=SSPI"
   }
 }
-

@@ -183,4 +183,3 @@ containsPatterns(str, patterns) = matched {
         regex.match(pattern, str)
     }
 }
-

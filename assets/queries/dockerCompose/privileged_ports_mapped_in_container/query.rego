@@ -40,7 +40,7 @@ is_privileged_port(port)
     container_port := both_ports[1]
     splitted_cp := split(container_port,"/")
     to_number(splitted_cp[0]) < 1024
-}else{#covers "HOST-HOST:CONTAINER-CONTAINER", "IPADDR:HOSTPORT:CONTAINERPORT", "IPADDR:HOST-HOST:CONTAINER-CONTAINER" 
+}else{#covers "HOST-HOST:CONTAINER-CONTAINER", "IPADDR:HOSTPORT:CONTAINERPORT", "IPADDR:HOST-HOST:CONTAINER-CONTAINER"
 # "IPADDR::CONTAINERPORT" and "HOST-HOST:CONTAINER"
 	both_ranges := split(port,":")
     splitted_ports := split(both_ranges[p],"-")

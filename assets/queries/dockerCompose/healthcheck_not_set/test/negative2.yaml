@@ -12,4 +12,3 @@ services:
       - 8092:8092
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost"]
-      

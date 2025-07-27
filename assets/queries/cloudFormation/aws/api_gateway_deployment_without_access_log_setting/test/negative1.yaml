@@ -30,6 +30,3 @@ Resources:
         AccessLogSetting:
           DestinationArn: "dest"
           Format: "format"
-
-
-

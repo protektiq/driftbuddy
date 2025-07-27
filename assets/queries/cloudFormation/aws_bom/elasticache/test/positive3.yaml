@@ -1,7 +1,7 @@
 Resources:
   ElasticacheCluster:
     Type: 'AWS::ElastiCache::CacheCluster'
-    Properties:    
+    Properties:
       Engine: memcached
       CacheNodeType: cache.t2.micro
       NumCacheNodes: '1'
@@ -10,11 +10,11 @@ Resources:
         - !Ref CacheSecurityGroup2
   CacheSecurityGroup2:
     Type: AWS::ElastiCache::SecurityGroup
-    Properties: 
+    Properties:
       Description: My ElastiCache Security Group
   SecurityGroupIngress2:
     Type: AWS::ElastiCache::SecurityGroupIngress
-    Properties: 
+    Properties:
       CacheSecurityGroupName: !Ref CacheSecurityGroup2
       EC2SecurityGroupName: !Ref SecurityGroup2
   SecurityGroup2:

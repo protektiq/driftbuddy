@@ -7,7 +7,7 @@ CxPolicy[result] {
 
 	resource := input.document[i].resource.alicloud_log_store[name]
     not common_lib.valid_key(resource, "retention_period")
-    
+
 	result := {
 		"documentId": input.document[i].id,
 		"resourceType": "alicloud_log_store",
@@ -27,7 +27,7 @@ CxPolicy[result] {
 	resource := input.document[i].resource.alicloud_log_store[name]
     rperiod := resource.retention_period
     to_number(rperiod) < 90
-    
+
 	result := {
 		"documentId": input.document[i].id,
 		"resourceType": "alicloud_log_store",

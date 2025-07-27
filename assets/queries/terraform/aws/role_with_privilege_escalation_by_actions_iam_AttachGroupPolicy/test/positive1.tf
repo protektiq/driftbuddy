@@ -19,6 +19,3 @@ resource "aws_iam_role_policy" "test_inline_policy" {
     ]
   })
 }
-
-
-

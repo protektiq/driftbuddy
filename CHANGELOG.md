@@ -46,4 +46,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Automated report generation
 - Integration with popular CI/CD platforms
 - Support for multiple cloud providers
-- AI-enhanced security analysis 
+- AI-enhanced security analysis

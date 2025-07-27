@@ -1,5 +1,5 @@
 - name: example1
-  community.aws.cloudtrail: 
+  community.aws.cloudtrail:
     sns_topic_name: random
     state: present
     name: default

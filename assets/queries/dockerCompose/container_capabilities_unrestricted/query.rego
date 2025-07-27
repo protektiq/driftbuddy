@@ -4,9 +4,9 @@ import data.generic.common as common_lib
 
 CxPolicy[result] {
 	resource := input.document[i]
-	service_parameters := resource.services[name]	
+	service_parameters := resource.services[name]
     common_lib.valid_key(service_parameters, "cap_add")
-    
+
 	result := {
 		"documentId": sprintf("%s", [resource.id]),
 		"searchKey": sprintf("services.%s.cap_add",[name]),
@@ -19,9 +19,9 @@ CxPolicy[result] {
 
 CxPolicy[result] {
 	resource := input.document[i]
-	service_parameters := resource.services[name]	
+	service_parameters := resource.services[name]
     not common_lib.valid_key(service_parameters, "cap_drop")
-    
+
 	result := {
 		"documentId": sprintf("%s", [resource.id]),
 		"searchKey": sprintf("services.%s",[name]),

@@ -64,4 +64,3 @@ spec:
           path: vault-token
           expirationSeconds: 7200
           audience: vault
-

@@ -23,4 +23,3 @@ Resources:
         ReadonlyRootFilesystem: true
         Vcpus: 2
         Image: nvidia/cuda
-

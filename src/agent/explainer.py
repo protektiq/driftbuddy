@@ -3,33 +3,29 @@ AI-powered explanation agent for DriftBuddy security findings.
 Provides detailed, actionable explanations of security issues with business risk context.
 """
 
+import asyncio
 import json
 import os
-import asyncio
 import time
-from datetime import datetime
-from typing import Dict, List, Any, Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
 from openai import OpenAI
+
 from driftbuddy.config import get_config
 from driftbuddy.risk_assessment import RiskMatrix
 
 # Load configuration
 config = get_config()
 
-def load_kics_results(results_path: str) -> Dict[str, Any]:
-    """
-    Load KICS scan results from JSON file.
-    
-    Args:
-        results_path: Path to the KICS results JSON file
-        
-    Returns:
-        Dictionary containing the scan results
-    """
+
+def load_kics_results(results_path: str) -> Dict[str, Any]:  # type: ignore[no-any-return]
+    """Load KICS results from JSON file."""
     try:
-        with open(results_path, 'r') as f:
-            return json.load(f)
+        with open(results_path) as f:
+            data = json.load(f)
+            return data
     except FileNotFoundError:
         print(f"❌ Results file not found: {results_path}")
         return {}
@@ -37,52 +33,53 @@ def load_kics_results(results_path: str) -> Dict[str, Any]:
         print(f"❌ Invalid JSON in results file: {results_path}")
         return {}
 
+
 def batch_generate_explanations(client: OpenAI, queries: List[Dict], max_workers: int = 3) -> List[Dict]:
     """
     Generate AI explanations for multiple queries in parallel batches.
-    
+
     Args:
         client: OpenAI client instance
         queries: List of query results from KICS
         max_workers: Maximum number of concurrent API calls
-        
+
     Returns:
         List of queries with AI explanations and business risk assessment added
     """
     enriched_queries = []
-    
+
     # Filter queries that have findings
     queries_with_findings = [q for q in queries if q.get("files")]
     queries_without_findings = [q for q in queries if not q.get("files")]
-    
+
     print(f"🚀 Processing {len(queries_with_findings)} queries with findings using {max_workers} workers...")
-    
+
     def process_single_query(query: Dict) -> Dict:
         """Process a single query with all its findings in one API call."""
         query_name = query.get("query_name", "Unknown Query")
         severity = query.get("severity", "UNKNOWN")
         description = query.get("description", "No description available")
         files = query.get("files", [])
-        
+
         # Ensure query_name is a string (handle cases where it might be a tuple or other type)
         if isinstance(query_name, (tuple, list)):
             query_name = str(query_name[0]) if query_name else "Unknown Query"
         elif not isinstance(query_name, str):
             query_name = str(query_name)
-        
+
         # Ensure severity is a string
         if not isinstance(severity, str):
             severity = str(severity)
-        
+
         # Ensure description is a string
         if not isinstance(description, str):
             description = str(description)
-        
+
         print(f"🤖 Processing: {query_name} ({len(files)} findings)")
-        
+
         # Get business risk assessment
         risk_assessment = RiskMatrix.assess_risk(query_name, severity, description)
-        
+
         # Create a comprehensive prompt that includes all findings for this query
         findings_summary = ""
         for i, file_finding in enumerate(files, 1):
@@ -90,63 +87,66 @@ def batch_generate_explanations(client: OpenAI, queries: List[Dict], max_workers
             line_number = file_finding.get("line", "Unknown line")
             issue = file_finding.get("issue", "No issue description")
             findings_summary += f"\n{i}. File: {file_name}:{line_number}\n   Issue: {issue}\n"
-        
+
         try:
             # Single comprehensive prompt for the entire query
             prompt = f"""
             As a cybersecurity expert and business risk analyst, provide a comprehensive analysis for this security finding:
-            
+
             Query: {query_name}
             Technical Severity: {severity}
             Description: {description}
             Number of affected files: {len(files)}
-            
+
             Business Risk Assessment:
             - Impact: {risk_assessment.impact.value} - {risk_assessment.impact_description}
             - Likelihood: {risk_assessment.likelihood.value} - {risk_assessment.likelihood_description}
             - Business Risk: {risk_assessment.business_risk.value}
             - Estimated Cost: {risk_assessment.cost_estimate}
             - Time to Fix: {risk_assessment.time_to_fix}
-            
+
             Affected Files and Issues:
             {findings_summary}
-            
+
             Provide a comprehensive response including:
             1. **Technical Explanation**: What this security issue is and why it matters
             2. **Business Impact**: How this affects operations, compliance, and reputation
             3. **Attack Scenarios**: How this could be exploited by attackers
-            4. **Remediation Strategy**: 
+            4. **Remediation Strategy**:
                - Overall approach to fixing this issue
                - Specific code fixes for each affected file
                - Implementation timeline and effort
             5. **Business Justification**: Cost-benefit analysis and priority recommendations
             6. **Risk Mitigation**: Additional security considerations
-            
+
             Format your response with clear sections and actionable recommendations.
             Focus on both technical accuracy and business value.
             """
-            
+
             start_time = time.time()
             response = client.chat.completions.create(
                 model=config.settings.openai_model,
                 messages=[
-                    {"role": "system", "content": "You are a cybersecurity expert and business risk analyst providing clear, actionable security advice with business context. Provide comprehensive, well-structured responses."},
-                    {"role": "user", "content": prompt}
+                    {
+                        "role": "system",
+                        "content": "You are a cybersecurity expert and business risk analyst providing clear, actionable security advice with business context. Provide comprehensive, well-structured responses.",
+                    },
+                    {"role": "user", "content": prompt},
                 ],
                 max_tokens=config.settings.openai_max_tokens,
                 temperature=0.3,
-                timeout=config.settings.ai_request_timeout
+                timeout=config.settings.ai_request_timeout,
             )
-            
+
             api_time = time.time() - start_time
             print(f"✅ {query_name}: API call completed in {api_time:.2f}s")
-            
+
             ai_explanation = response.choices[0].message.content.strip()
-            
+
             # Parse the AI response to extract fixes for individual files
             # The AI will provide fixes in a structured format
             file_fixes = parse_ai_response_for_fixes(ai_explanation, files)
-            
+
             # Add AI explanation and risk assessment to query
             query["ai_explanation"] = ai_explanation
             query["risk_assessment"] = {
@@ -159,27 +159,27 @@ def batch_generate_explanations(client: OpenAI, queries: List[Dict], max_workers
                 "business_context": risk_assessment.business_context,
                 "remediation_priority": risk_assessment.remediation_priority,
                 "cost_estimate": risk_assessment.cost_estimate,
-                "time_to_fix": risk_assessment.time_to_fix
+                "time_to_fix": risk_assessment.time_to_fix,
             }
-            
+
             # Add parsed fixes to file findings
             for file_finding, fix in zip(files, file_fixes):
                 file_finding["ai_fix"] = fix
-            
+
         except Exception as e:
             print(f"⚠️ Error processing {query_name}: {e}")
             query["ai_explanation"] = f"AI explanation generation failed: {str(e)}"
             # Add default fixes for files
             for file_finding in files:
                 file_finding["ai_fix"] = "AI fix generation failed"
-        
+
         return query
-    
+
     # Process queries in parallel with limited concurrency
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         # Submit all queries for processing
         future_to_query = {executor.submit(process_single_query, query): query for query in queries_with_findings}
-        
+
         # Collect results as they complete
         for future in as_completed(future_to_query):
             query = future_to_query[future]
@@ -189,33 +189,34 @@ def batch_generate_explanations(client: OpenAI, queries: List[Dict], max_workers
             except Exception as e:
                 print(f"❌ Error processing query {query.get('query_name', 'Unknown')}: {e}")
                 enriched_queries.append(query)
-    
+
     # Add queries without findings
     enriched_queries.extend(queries_without_findings)
-    
+
     return enriched_queries
+
 
 def parse_ai_response_for_fixes(ai_response: str, files: List[Dict]) -> List[str]:
     """
     Parse the AI response to extract specific fixes for each file.
-    
+
     Args:
         ai_response: The AI-generated explanation
         files: List of file findings
-        
+
     Returns:
         List of fixes corresponding to each file
     """
     fixes = []
-    
+
     # Simple parsing logic - look for file-specific sections
-    lines = ai_response.split('\n')
+    lines = ai_response.split("\n")
     current_fix = ""
     in_fix_section = False
-    
+
     for line in lines:
         line = line.strip()
-        
+
         # Look for file-specific headers
         if any(f"File:" in line and file.get("file_name", "") in line for file in files):
             if current_fix:
@@ -227,26 +228,27 @@ def parse_ai_response_for_fixes(ai_response: str, files: List[Dict]) -> List[str
         elif in_fix_section and not line:
             # Empty line might indicate end of fix section
             pass
-    
+
     # Add the last fix
     if current_fix:
         fixes.append(current_fix.strip())
-    
+
     # Ensure we have a fix for each file
     while len(fixes) < len(files):
         fixes.append("Specific fix not found in AI response")
-    
-    return fixes[:len(files)]  # Ensure we don't have more fixes than files
+
+    return fixes[: len(files)]  # Ensure we don't have more fixes than files
+
 
 def explain_findings(queries: List[Dict], output_html: Optional[str] = None) -> List[Dict]:
     """
     Generate AI-powered explanations for security findings with business risk context.
     Optimized for performance with parallel processing and reduced API calls.
-    
+
     Args:
         queries: List of query results from KICS
         output_html: Optional path for HTML output file
-        
+
     Returns:
         List of queries with AI explanations and business risk assessment added
     """
@@ -256,88 +258,80 @@ def explain_findings(queries: List[Dict], output_html: Optional[str] = None) -> 
         print("⚠️ No OpenAI API key available. AI explanations will be disabled.")
         print("💡 Set OPENAI_API_KEY environment variable or use demo mode.")
         return queries
-    
+
     client = OpenAI(api_key=api_key)
-    
+
     # Use parallel processing with limited concurrency to avoid rate limits
     max_workers = min(
-        config.settings.ai_max_concurrent_requests, 
-        len([q for q in queries if q.get("files")])
+        config.settings.ai_max_concurrent_requests,
+        len([q for q in queries if q.get("files")]),
     )
-    
+
     print(f"🚀 Starting AI explanation generation...")
     print(f"📊 Total queries: {len(queries)}")
     print(f"🔍 Queries with findings: {len([q for q in queries if q.get('files')])}")
     print(f"⚡ Using {max_workers} concurrent workers")
     print(f"⏱️ Request timeout: {config.settings.ai_request_timeout}s")
-    
+
     start_time = time.time()
-    
+
     enriched_queries = batch_generate_explanations(client, queries, max_workers)
-    
+
     total_time = time.time() - start_time
     print(f"✅ AI explanation generation completed in {total_time:.2f}s")
     print(f"📈 Average time per query: {total_time/max(1, len([q for q in queries if q.get('files')])):.2f}s")
-    
+
     # Generate HTML report if requested
     if output_html:
         # Calculate total cost for HTML report
-        total_cost = 0
-        for query in enriched_queries:
+        total_cost = 0.0
+        for query in queries:
             risk_assessment = query.get("risk_assessment", {})
             cost_str = risk_assessment.get("cost_estimate", "$0")
+
+            # Parse cost string to extract numerical value
             if "$" in cost_str:
                 try:
-                    # Clean up the cost string and extract only the numeric part
-                    cost_range = cost_str.replace("$", "").replace("K", "000").replace("+", "").strip()
-                    
-                    # Remove everything after the first parenthesis or space that's not part of the number
-                    if "(" in cost_range:
-                        cost_range = cost_range.split("(")[0].strip()
-                    elif " " in cost_range and not any(c.isdigit() for c in cost_range.split(" ")[1]):
-                        cost_range = cost_range.split(" ")[0].strip()
-                    
-                    print(f"🔍 Debug - Cleaned cost range: {cost_range}")
-                    
-                    if "-" in cost_range:
-                        min_cost, max_cost = cost_range.split("-")
-                        min_cost = int(min_cost.strip())
-                        max_cost = int(max_cost.strip())
-                        avg_cost = (min_cost + max_cost) / 2
-                        print(f"🔍 Debug - Range cost: min={min_cost}, max={max_cost}, avg={avg_cost}")
+                    # Remove $ and any text in parentheses
+                    cost_clean = cost_str.replace("$", "").split("(")[0].strip()
+
+                    # Handle K notation (e.g., "1K" = 1000)
+                    if "K" in cost_clean:
+                        cost_clean = cost_clean.replace("K", "000")
+
+                    # Handle ranges (e.g., "1K-10K")
+                    if "-" in cost_clean:
+                        min_cost, max_cost = cost_clean.split("-")
+                        avg_cost = (float(min_cost) + float(max_cost)) / 2
                     else:
-                        avg_cost = int(cost_range)
-                        print(f"🔍 Debug - Single cost: {avg_cost}")
-                    
+                        # Remove any remaining non-numeric characters
+                        cost_clean = "".join(c for c in cost_clean if c.isdigit() or c == ".")
+                        avg_cost = float(cost_clean) if cost_clean else 0.0
+
                     total_cost += avg_cost
-                    print(f"🔍 Debug - Updated total cost: {total_cost}")
-                except Exception as e:
-                    print(f"🔍 Debug - Error parsing cost '{cost_str}': {e}")
-                    pass
-        
+                    print(f"🔍 Debug - Parsed cost '{cost_str}' to {avg_cost}, total now: {total_cost}")
+                except (ValueError, AttributeError) as e:
+                    print(f"🔍 Debug - Could not parse cost '{cost_str}': {e}")
+                    continue
+
         generate_html_report(enriched_queries, output_html, total_cost)
-    
+
     return enriched_queries
 
-def generate_html_report(queries: List[Dict], output_path: str, total_cost: float = None):
+
+def generate_html_report(queries: List[Dict], output_path: str, total_cost: float = None) -> None:
     """
     Generate an HTML report with AI explanations and business risk assessment.
-    
+
     Args:
         queries: List of enriched queries with AI explanations and risk assessment
         output_path: Path for the HTML output file
         total_cost: Pre-calculated total cost (optional)
     """
-    
+
     # Initialize risk summary with proper keys
-    risk_summary = {
-        "critical": 0,
-        "high": 0,
-        "medium": 0,
-        "low": 0,
-        "minimal": 0
-    }
-    
+    risk_summary = {"critical": 0, "high": 0, "medium": 0, "low": 0, "minimal": 0}
+
     # Use provided total_cost or calculate it
     if total_cost is not None:
         total_estimated_cost = total_cost
@@ -345,47 +339,47 @@ def generate_html_report(queries: List[Dict], output_path: str, total_cost: floa
     else:
         total_estimated_cost = 0
         print(f"🔍 Debug - No total cost provided, starting at 0")
-    
+
     print(f"🔍 Debug - Initial risk_summary: {risk_summary}")
-    
+
     for query in queries:
         risk_assessment = query.get("risk_assessment", {})
         business_risk = risk_assessment.get("business_risk", "Medium")
-        
+
         # Debug logging to identify the issue
         print(f"🔍 Debug - business_risk type: {type(business_risk)}, value: {business_risk}")
-        
+
         # Ensure business_risk is a string (handle cases where it might be a tuple or other type)
         if isinstance(business_risk, (tuple, list)):
             business_risk = str(business_risk[0]) if business_risk else "Medium"
         elif not isinstance(business_risk, str):
             business_risk = str(business_risk)
-        
+
         print(f"🔍 Debug - business_risk after conversion: {business_risk}")
-        
+
         # Map risk levels to expected summary keys
         # Handle both string numbers and category names
         risk_level_mapping = {
             "critical": "critical",
-            "high": "high", 
+            "high": "high",
             "medium": "medium",
             "low": "low",
             "minimal": "minimal",
             # Handle numeric string values
             "1": "minimal",
-            "2": "low", 
+            "2": "low",
             "3": "medium",
             "4": "high",
-            "5": "critical"
+            "5": "critical",
         }
-        
+
         # Use mapped key or default to "medium" if not found
         summary_key = risk_level_mapping.get(business_risk.lower(), "medium")
         print(f"🔍 Debug - summary_key: {summary_key}")
         print(f"🔍 Debug - risk_summary keys before: {list(risk_summary.keys())}")
         risk_summary[summary_key] += 1
         print(f"🔍 Debug - risk_summary after update: {risk_summary}")
-    
+
     html_content = f"""
 <!DOCTYPE html>
 <html lang="en">
@@ -516,14 +510,14 @@ def generate_html_report(queries: List[Dict], output_path: str, total_cost: floa
     <div class="container">
         <h1>🔒 DriftBuddy Security Report</h1>
         <p class="timestamp">Generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
-        
+
         <div class="summary">
             <h2>📊 Executive Summary</h2>
             <p>This report contains AI-powered explanations of security findings with business risk assessment.</p>
             <p><strong>Total Queries:</strong> {len(queries)}</p>
             <p><strong>Findings with Issues:</strong> {sum(1 for q in queries if q.get('files'))}</p>
         </div>
-        
+
         <div class="risk-summary">
             <div class="risk-card risk-critical">
                 <h3>🔴 Critical</h3>
@@ -546,13 +540,13 @@ def generate_html_report(queries: List[Dict], output_path: str, total_cost: floa
                 <div class="risk-count">{risk_summary['minimal']}</div>
             </div>
         </div>
-        
+
         <div class="cost-highlight">
             <h3>💰 Financial Impact</h3>
             <p><strong>Total Estimated Cost of Inaction:</strong> ${total_estimated_cost:,.0f}</p>
             <p><strong>Priority:</strong> Focus on Critical and High business risk findings first</p>
         </div>
-        
+
         <div class="risk-matrix">
             <h3>📋 Risk Matrix (Impact × Likelihood = Business Risk Score)</h3>
             <table style="width: 100%; border-collapse: collapse;">
@@ -615,7 +609,7 @@ def generate_html_report(queries: List[Dict], output_path: str, total_cost: floa
             </ul>
         </div>
 """
-    
+
     for query in queries:
         query_name = query.get("query_name", "Unknown Query")
         severity = query.get("severity", "UNKNOWN")
@@ -623,23 +617,23 @@ def generate_html_report(queries: List[Dict], output_path: str, total_cost: floa
         files = query.get("files", [])
         ai_explanation = query.get("ai_explanation", "No AI explanation available")
         risk_assessment = query.get("risk_assessment", {})
-        
+
         business_risk = risk_assessment.get("business_risk", "Medium")
-        
+
         # Ensure business_risk is a string (handle cases where it might be a tuple or other type)
         if isinstance(business_risk, (tuple, list)):
             business_risk = str(business_risk[0]) if business_risk else "Medium"
         elif not isinstance(business_risk, str):
             business_risk = str(business_risk)
-        
+
         risk_class = f"risk-{business_risk.lower()}"
-        
+
         html_content += f"""
         <h2 class="{risk_class}">🔍 {query_name}</h2>
         <p><strong>Technical Severity:</strong> {severity}</p>
         <p><strong>Business Risk:</strong> <span class="{risk_class}">{business_risk}</span></p>
         <p><strong>Description:</strong> {description}</p>
-        
+
         <div class="risk-assessment">
             <h3>📊 Business Risk Assessment</h3>
             <p><strong>Impact:</strong> {risk_assessment.get('impact', 'Unknown')} - {risk_assessment.get('impact_description', '')}</p>
@@ -651,29 +645,29 @@ def generate_html_report(queries: List[Dict], output_path: str, total_cost: floa
             <p><strong>Time to Fix:</strong> {risk_assessment.get('time_to_fix', 'Unknown')}</p>
             <p><strong>Business Context:</strong> {risk_assessment.get('business_context', '')}</p>
         </div>
-        
+
         <div class="ai-explanation">
             <h3>🤖 AI Explanation</h3>
             <p>{ai_explanation.replace(chr(10), '<br>')}</p>
         </div>
 """
-        
+
         if files:
             html_content += f"""
         <h3>📁 Affected Files ({len(files)})</h3>
 """
-            
+
             for file_finding in files:
                 file_name = file_finding.get("file_name", "Unknown file")
                 line_number = file_finding.get("line", "Unknown line")
                 issue = file_finding.get("issue", "No issue description")
                 ai_fix = file_finding.get("ai_fix", "No AI fix available")
-                
+
                 html_content += f"""
         <div class="finding">
             <h4>📄 {file_name}:{line_number}</h4>
             <p><strong>Issue:</strong> {issue}</p>
-            
+
             <div class="ai-fix">
                 <h5>🔧 AI Suggested Fix</h5>
                 <p>{ai_fix.replace(chr(10), '<br>')}</p>
@@ -684,42 +678,43 @@ def generate_html_report(queries: List[Dict], output_path: str, total_cost: floa
             html_content += """
         <p>✅ No security issues found for this query.</p>
 """
-    
+
     html_content += """
     </div>
 </body>
 </html>
 """
-    
+
     try:
-        with open(output_path, 'w', encoding='utf-8') as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             f.write(html_content)
         print(f"✅ HTML report generated: {output_path}")
     except Exception as e:
         print(f"❌ Error generating HTML report: {e}")
 
-def main():
+
+def main() -> None:
     """Main function for testing the explainer."""
     # Example usage
     results_path = "test_data/output/results.json"
-    
+
     if not os.path.exists(results_path):
         print(f"❌ Results file not found: {results_path}")
         return
-    
+
     results = load_kics_results(results_path)
     queries = results.get("queries", [])
-    
+
     if not queries:
         print("No queries found in results.")
         return
-    
+
     print(f"🔍 Processing {len(queries)} queries...")
-    
+
     enriched_queries = explain_findings(queries, "outputs/analysis/ai_security_report.html")
-    
+
     print(f"✅ Processed {len(enriched_queries)} queries with AI explanations")
+
 
 if __name__ == "__main__":
     main()
-

@@ -1,4 +1,4 @@
-package Cx  
+package Cx
 
 import data.generic.common as common_lib
 
@@ -7,10 +7,10 @@ CxPolicy[result] {
 	statefulset.kind == "StatefulSet"
 
 	count({x | 	resource := input.document[x];
-    			resource.kind == "Service"; 
-            	resource.spec.clusterIP == "None"; 
-            	statefulset.metadata.namespace == resource.metadata.namespace; 
-            	statefulset.spec.serviceName == resource.metadata.name; 
+    			resource.kind == "Service";
+            	resource.spec.clusterIP == "None";
+            	statefulset.metadata.namespace == resource.metadata.namespace;
+            	statefulset.spec.serviceName == resource.metadata.name;
             	match_labels( resource.spec.selector, statefulset.spec.template.metadata.labels)
             	}) == 0
 

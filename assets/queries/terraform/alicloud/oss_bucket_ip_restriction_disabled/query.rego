@@ -6,7 +6,7 @@ import data.generic.terraform as tf_lib
 CxPolicy[result] {
 	resource := input.document[i].resource.alicloud_oss_bucket[name]
 	policy := resource.policy
-	
+
     not ip_restricted(policy)
 
 	result := {

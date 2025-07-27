@@ -10,7 +10,7 @@ CxPolicy[result] {
 	some i
 	resource := input.document[i].resource.alicloud_db_instance[name]
 	resource.engine == "MySQL"
-	resource.engine_version == supported_mysql_engines[_]  
+	resource.engine_version == supported_mysql_engines[_]
 	resource.tde_status == "Disabled"
 
 	result := {
@@ -26,7 +26,7 @@ CxPolicy[result] {
             "before": "Disabled",
             "after": "Enabled"
         }),
-        "remediationType": "replacement",	
+        "remediationType": "replacement",
 	}
 }
 
@@ -34,7 +34,7 @@ CxPolicy[result] {
 	some i
 	resource := input.document[i].resource.alicloud_db_instance[name]
 	resource.engine == "MySQL"
-	resource.engine_version == supported_mysql_engines[_]  
+	resource.engine_version == supported_mysql_engines[_]
 	not common_lib.valid_key(resource,"tde_status")
 
 	result := {
@@ -47,7 +47,7 @@ CxPolicy[result] {
 		"keyActualValue": "'tde_status' is not declared",
 		"searchLine": common_lib.build_search_line(["resource", "alicloud_db_instance", name], []),
 		"remediation": "tde_status = \"Enabled\"",
-        "remediationType": "addition",	
+        "remediationType": "addition",
 	}
 }
 
@@ -55,7 +55,7 @@ CxPolicy[result] {
 	some i
 	resource := input.document[i].resource.alicloud_db_instance[name]
 	resource.engine == "SQLServer"
-	resource.engine_version == supported_sql_engines[_]  
+	resource.engine_version == supported_sql_engines[_]
 	resource.tde_status == "Disabled"
 
 	result := {
@@ -79,7 +79,7 @@ CxPolicy[result] {
 	some i
 	resource := input.document[i].resource.alicloud_db_instance[name]
 	resource.engine == "SQLServer"
-	resource.engine_version == supported_sql_engines[_]  
+	resource.engine_version == supported_sql_engines[_]
 	not common_lib.valid_key(resource,"tde_status")
 
 	result := {
@@ -92,8 +92,6 @@ CxPolicy[result] {
 		"keyActualValue": "'tde_status' is not declared",
 		"searchLine": common_lib.build_search_line(["resource", "alicloud_db_instance", name], []),
 		"remediation": "tde_status = \"Enabled\"",
-        "remediationType": "addition",	
+        "remediationType": "addition",
 	}
 }
-
-

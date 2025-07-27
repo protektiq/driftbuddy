@@ -8,7 +8,7 @@ CxPolicy[result] {
 	elem := resource[key]
 	elem.Type == "AWS::ECS::TaskDefinition"
     efs := elem.Properties.volumes[index].efsVolumeConfiguration
-    value := efs.TransitEncryption 
+    value := efs.TransitEncryption
 	not value == "ENABLED"
 
     result := {
@@ -28,7 +28,7 @@ CxPolicy[result] {
 	elem := resource[key]
 	elem.Type == "AWS::ECS::TaskDefinition"
     efs := elem.Properties.volumes[index].efsVolumeConfiguration
-    not efs.TransitEncryption 
+    not efs.TransitEncryption
 
     result := {
 		"documentId": input.document[i].id,

@@ -8,4 +8,3 @@ resources:
       location: US-CENTRAL1
       logging:
         logObjectPrefix: some_obj_prefix
-      

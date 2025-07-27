@@ -21,4 +21,3 @@ Resources:
 Outputs:
   DomainName:
     Value: !Ref myDomainName
-

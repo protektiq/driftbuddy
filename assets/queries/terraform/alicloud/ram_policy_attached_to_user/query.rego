@@ -15,6 +15,6 @@ CxPolicy[result] {
 		"issueType": "IncorrectValue",
 		"keyExpectedValue": sprintf("alicloud_ram_user_policy_attachment[%s] should be undefined",[a]),
 		"keyActualValue": sprintf("alicloud_ram_user_policy_attachment[%s] is defined",[a]),
-        "searchline":common_lib.build_search_line(["resource", "alicloud_ram_user_policy_attachment", a], []),        
+        "searchline":common_lib.build_search_line(["resource", "alicloud_ram_user_policy_attachment", a], []),
 	}
 }

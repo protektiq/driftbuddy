@@ -77,5 +77,3 @@ checkRemainder(mem, cpu) {
 	not cpu == 256
 	not mem % 1024 == 0
 }
-
-

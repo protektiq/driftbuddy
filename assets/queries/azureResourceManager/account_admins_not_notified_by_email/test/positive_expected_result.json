@@ -28,7 +28,7 @@
     "severity": "INFO",
     "line": 4,
     "filename": "positive1.bicep"
-  }, 
+  },
   {
     "queryName": "Account Admins Not Notified By Email",
     "severity": "INFO",

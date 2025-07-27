@@ -33,5 +33,3 @@ Resources:
       SourceRegion: !Ref SourceRegion
       KmsKeyId: !Ref MyKey
       StorageEncrypted: false
-
-

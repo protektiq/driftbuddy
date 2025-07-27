@@ -49,7 +49,7 @@ get_accessibility(topic_name) = accessibility_status{
 	accessibility_status := "public"
 } else = accessibility_status{
 	accessibility_status := "unknown"
-}	
+}
 
 consideredPublicPolicyMembers := {"allUsers","allAuthenticatedUsers"}
 

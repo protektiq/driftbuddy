@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "driftbuddy"
 version = "1.0.0"
-description = "Enterprise-ready infrastructure configuration analysis and security scanning tool"
+description = "A comprehensive IaC security and drift detection tool"
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
@@ -14,7 +14,7 @@ authors = [
 maintainers = [
     {name = "DriftBuddy Team", email = "team@driftbuddy.dev"}
 ]
-keywords = ["security", "infrastructure", "iac", "compliance", "drift-detection"]
+keywords = ["security", "iac", "terraform", "kubernetes", "drift-detection"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -22,16 +22,15 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Security",
-    "Topic :: System :: Systems Administration",
     "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: System :: Systems Administration",
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 dependencies = [
     "openai>=1.0.0",
     "python-dotenv>=1.0.0",
@@ -129,10 +128,6 @@ python_functions = ["test_*"]
 addopts = [
     "--strict-markers",
     "--strict-config",
-    "--cov=src/driftbuddy",
-    "--cov-report=term-missing",
-    "--cov-report=html",
-    "--cov-report=xml",
 ]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
@@ -162,4 +157,4 @@ exclude_lines = [
     "if __name__ == .__main__.:",
     "class .*\\bProtocol\\):",
     "@(abc\\.)?abstractmethod",
-] 
+]

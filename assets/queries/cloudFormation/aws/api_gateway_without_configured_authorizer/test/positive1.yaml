@@ -6,4 +6,3 @@ Resources:
       Name: TL-Dev-WebSocket-API
       ProtocolType: WEBSOCKET
       RouteSelectionExpression: $request.body.action
-  

@@ -9,4 +9,3 @@ Resources:
         Owner: AWS
         SourceIdentifier: ACCESS_KEYS_ROTATED
       MaximumExecutionFrequency: TwentyFour_Hours
-

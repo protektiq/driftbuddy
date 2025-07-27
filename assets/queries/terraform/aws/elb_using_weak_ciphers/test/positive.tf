@@ -104,4 +104,3 @@ resource "aws_load_balancer_listener_policy" "positive9" {
     aws_load_balancer_policy.wu-tang-ssl.policy_name,
   ]
 }
-

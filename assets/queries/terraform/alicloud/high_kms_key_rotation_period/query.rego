@@ -29,7 +29,7 @@ CxPolicy[result] {
 CxPolicy[result] {
 	some i
 	resource := input.document[i].resource.alicloud_kms_key[name]
-	not common_lib.valid_key(resource, "automatic_rotation") 
+	not common_lib.valid_key(resource, "automatic_rotation")
 
 	result := {
 		"documentId": input.document[i].id,
@@ -48,7 +48,7 @@ CxPolicy[result] {
 CxPolicy[result] {
 	some i
 	resource := input.document[i].resource.alicloud_kms_key[name]
-	resource.automatic_rotation == "Disabled" 
+	resource.automatic_rotation == "Disabled"
 
 	result := {
 		"documentId": input.document[i].id,
@@ -69,14 +69,14 @@ CxPolicy[result] {
 
 getSeconds(resource) = value{
 	contains(resource.rotation_interval, "s")
-	value := to_number(trim_suffix(resource.rotation_interval, "s"))   
+	value := to_number(trim_suffix(resource.rotation_interval, "s"))
 }else = value {
 	contains(resource.rotation_interval, "m")
-	value := to_number(trim_suffix(resource.rotation_interval, "m"))*60   
+	value := to_number(trim_suffix(resource.rotation_interval, "m"))*60
 }else = value {
 	contains(resource.rotation_interval, "h")
-	value := to_number(trim_suffix(resource.rotation_interval, "h"))*3600  
+	value := to_number(trim_suffix(resource.rotation_interval, "h"))*3600
 }else = value {
 	contains(resource.rotation_interval, "d")
-	value := to_number(trim_suffix(resource.rotation_interval, "d"))*86400  
+	value := to_number(trim_suffix(resource.rotation_interval, "d"))*86400
 }

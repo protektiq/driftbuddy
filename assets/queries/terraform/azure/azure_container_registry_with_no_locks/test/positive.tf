@@ -13,4 +13,3 @@ scope = azurerm_container_registry.acr1.id
 lock_level = "CanNotDelete"
 notes = "Locked because it's needed by a third-party"
 }
-

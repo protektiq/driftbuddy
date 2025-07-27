@@ -10,4 +10,3 @@ resource "alicloud_actiontrail_trail" "actiontrail3" {
   event_rw           = "All"
   trail_region       = "All"
 }
-

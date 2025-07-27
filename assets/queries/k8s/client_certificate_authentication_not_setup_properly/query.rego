@@ -79,7 +79,7 @@ CxPolicy[result] {
     doc.kind == "KubeletConfiguration"
     not endswith(doc.authentication.x509.clientCAFile, ".pem")
     not endswith(doc.authentication.x509.clientCAFile, ".crt")
-	 
+
 	result := {
 		"documentId": doc.id,
 		"resourceType": doc.kind,

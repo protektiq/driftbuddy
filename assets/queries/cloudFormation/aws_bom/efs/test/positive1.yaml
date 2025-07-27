@@ -21,7 +21,6 @@ Resources:
                 - "elasticfilesystem:ClientMount"
               Principal:
                   AWS: 'arn:aws:iam::111122223333:role/EfsReadOnly'
-        KmsKeyId: !GetAtt 
+        KmsKeyId: !GetAtt
           - key
           - Arn
-    

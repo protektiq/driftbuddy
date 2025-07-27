@@ -10,8 +10,8 @@ CxPolicy[result] {
     path := split(volume,":")
     host_path := path[0]
     contains(host_path, "docker.sock")
- 	
-    
+
+
 	result := {
 		"documentId": sprintf("%s", [resource.id]),
 		"searchKey": sprintf("services.%s.volumes",[name]),

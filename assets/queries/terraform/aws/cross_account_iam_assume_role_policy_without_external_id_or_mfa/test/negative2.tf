@@ -13,9 +13,9 @@ resource "aws_iam_role" "negative2" {
       "Effect": "Allow",
       "Resource": "*",
       "Sid": "",
-      "Condition": { 
-         "Bool": { 
-            "aws:MultiFactorAuthPresent": "true" 
+      "Condition": {
+         "Bool": {
+            "aws:MultiFactorAuthPresent": "true"
           }
       }
     }

@@ -11,4 +11,3 @@ spec:
     env:
     - name: Square_OAuth_Secret
       value: "sq0csp-0p9h7g6f4s3s3s3-4a3ardgwa6ADRDJDDKUFYDYDYDY"
-

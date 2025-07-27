@@ -39,7 +39,7 @@ hasTimeGreaterThanValue(container, flag, value) {
 
 getSeconds(time)=seconds{
 	regex.match("^(\\d+[h])$", time)
-    seconds := to_number(trim_suffix(time, "h") )*3600    
+    seconds := to_number(trim_suffix(time, "h") )*3600
 }else = seconds {
 	regex.match("^(\\d+[h])(\\d+[m])$", time)
     hours := replace(time, "h", ",")
@@ -58,17 +58,17 @@ getSeconds(time)=seconds{
     minutes :=replace(hours, "m", ",")
     secs :=replace(minutes, "s", ",")
     time_array := split(secs, ",")
-    seconds := to_number(time_array[0])*3600 + to_number(time_array[1])*60 + to_number(time_array[2]) 
+    seconds := to_number(time_array[0])*3600 + to_number(time_array[1])*60 + to_number(time_array[2])
 }else = seconds {
 	regex.match("^(\\d+[m])$", time)
-    seconds := to_number(trim_suffix(time, "m") )*60  
+    seconds := to_number(trim_suffix(time, "m") )*60
 }else = seconds {
 	regex.match("^(\\d+[m])(\\d+[s])$", time)
     minutes := replace(time, "m", ",")
     secs := replace(minutes, "s", ",")
     time_array := split(secs, ",")
-    seconds := to_number(time_array[0])*60 + to_number(time_array[1]) 
+    seconds := to_number(time_array[0])*60 + to_number(time_array[1])
 }else = seconds {
 	regex.match("^(\\d+[s])$", time)
-    seconds := to_number(trim_suffix(time, "s"))   
+    seconds := to_number(trim_suffix(time, "s"))
 }

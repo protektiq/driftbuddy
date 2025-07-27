@@ -9,4 +9,3 @@ Resources:
         Owner: AWS
         SourceIdentifier: ENCRYPTED_VOLUMES
       MaximumExecutionFrequency: TwentyFour_Hours
-

@@ -15,4 +15,3 @@ resources:
     properties:
       serverSideEncryption:
         enabled: false
-

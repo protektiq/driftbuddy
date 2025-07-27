@@ -37,12 +37,10 @@ def load_kics_results(results_path: str) -> Dict[str, Any]:  # type: ignore[no-a
 def batch_generate_explanations(client: OpenAI, queries: List[Dict], max_workers: int = 3) -> List[Dict]:
     """
     Generate AI explanations for multiple queries in parallel batches.
-
     Args:
         client: OpenAI client instance
         queries: List of query results from KICS
         max_workers: Maximum number of concurrent API calls
-
     Returns:
         List of queries with AI explanations and business risk assessment added
     """
@@ -88,111 +86,102 @@ def batch_generate_explanations(client: OpenAI, queries: List[Dict], max_workers
             issue = file_finding.get("issue", "No issue description")
             findings_summary += f"\n{i}. File: {file_name}:{line_number}\n   Issue: {issue}\n"
 
+            # AI prompt with explicit remediation code request
+        prompt = f"""
+        As a cybersecurity expert and business risk analyst, provide a comprehensive analysis for this security finding:
+
+        Query: {query_name}
+        Technical Severity: {severity}
+        Description: {description}
+        Number of affected files: {len(files)}
+
+        Provide a comprehensive response with these sections (do not use numbered lists):
+
+        **Technical Explanation:** Explain the technical root cause and risk.
+
+        **Business Impact:** List business/operational impacts (operations, compliance, reputation).
+
+        **Attack Scenarios:** List realistic attack scenarios.
+
+        **Remediation Strategy:** Give a step-by-step fix, including specific code/configuration changes.
+
+        **Business Justification:** Cost-benefit analysis and priority recommendation.
+
+        **Risk Mitigation:** Ongoing controls and monitoring.
+
+        **Remediation Code:** Provide a code snippet or configuration example that would fix this issue. Format the code as a fenced code block (e.g., ```hcl for Terraform, ```yaml for YAML, etc). Only include the code block, no extra explanation.
+
+        Findings:{findings_summary}
+        """
         try:
             # Single comprehensive prompt for the entire query
-            prompt = f"""
-            As a cybersecurity expert and business risk analyst, provide a comprehensive analysis for this security finding:
-
-            Query: {query_name}
-            Technical Severity: {severity}
-            Description: {description}
-            Number of affected files: {len(files)}
-
-            Business Risk Assessment:
-            - Impact: {risk_assessment.impact.value} - {risk_assessment.impact_description}
-            - Likelihood: {risk_assessment.likelihood.value} - {risk_assessment.likelihood_description}
-            - Business Risk: {risk_assessment.business_risk.value}
-            - Estimated Cost: {risk_assessment.cost_estimate}
-            - Time to Fix: {risk_assessment.time_to_fix}
-
-            Affected Files and Issues:
-            {findings_summary}
-
-            Provide a comprehensive response including:
-            1. **Technical Explanation**: What this security issue is and why it matters
-            2. **Business Impact**: How this affects operations, compliance, and reputation
-            3. **Attack Scenarios**: How this could be exploited by attackers
-            4. **Remediation Strategy**:
-               - Overall approach to fixing this issue
-               - Specific code fixes for each affected file
-               - Implementation timeline and effort
-            5. **Business Justification**: Cost-benefit analysis and priority recommendations
-            6. **Risk Mitigation**: Additional security considerations
-
-            Format your response with clear sections and actionable recommendations.
-            Focus on both technical accuracy and business value.
-            """
-
-            start_time = time.time()
             response = client.chat.completions.create(
-                model=config.settings.openai_model,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "You are a cybersecurity expert and business risk analyst providing clear, actionable security advice with business context. Provide comprehensive, well-structured responses.",
-                    },
-                    {"role": "user", "content": prompt},
-                ],
-                max_tokens=config.settings.openai_max_tokens,
-                temperature=0.3,
-                timeout=config.settings.ai_request_timeout,
+                model="gpt-4o",
+                messages=[{"role": "system", "content": "You are a cybersecurity expert and business risk analyst."}, {"role": "user", "content": prompt}],
+                temperature=0,  # Deterministic output
+                max_tokens=1200,
+            )
+            ai_response = response.choices[0].message.content.strip()
+            print(
+                f"✅ {query_name}: API call completed in {getattr(response, 'response_ms', 0)/1000:.2f}s"
+                if hasattr(response, "response_ms")
+                else f"✅ {query_name}: API call completed"
             )
 
-            api_time = time.time() - start_time
-            print(f"✅ {query_name}: API call completed in {api_time:.2f}s")
+            # Parse remediation code block from AI response
+            import re
 
-            ai_explanation = response.choices[0].message.content.strip()
+            code_block = None
+            code_match = re.search(r"```([a-zA-Z0-9]*)\n([\s\S]+?)```", ai_response)
+            if code_match:
+                code_block = code_match.group(0)  # include the ``` markers
+                # Remove the code block from the AI explanation text
+                ai_explanation_clean = re.sub(r"```([a-zA-Z0-9]*)\n([\s\S]+?)```", "", ai_response).strip()
+            else:
+                ai_explanation_clean = ai_response
 
-            # Parse the AI response to extract fixes for individual files
-            # The AI will provide fixes in a structured format
-            file_fixes = parse_ai_response_for_fixes(ai_explanation, files)
+            # Clean up numbered sections and redundant headings
+            ai_explanation_clean = re.sub(r"\d+\.\s*Remediation Code Example:\s*", "", ai_explanation_clean)
+            ai_explanation_clean = re.sub(r"\d+\.\s*Example Remediation Code:\s*", "", ai_explanation_clean)
+            ai_explanation_clean = re.sub(r"Remediation Code Example:\s*", "", ai_explanation_clean)
+            ai_explanation_clean = re.sub(r"Example Remediation Code:\s*", "", ai_explanation_clean)
+            ai_explanation_clean = re.sub(r"Remediation Code:\s*", "", ai_explanation_clean)
+            ai_explanation_clean = re.sub(r"\*\*Remediation Code:\*\*\s*", "", ai_explanation_clean)
+            ai_explanation_clean = re.sub(r"\*\*Remediation Code\*\*:\s*", "", ai_explanation_clean)
 
-            # Add AI explanation and risk assessment to query
-            query["ai_explanation"] = ai_explanation
-            query["risk_assessment"] = {
-                "impact": risk_assessment.impact.value,
-                "likelihood": risk_assessment.likelihood.value,
-                "business_risk_score": risk_assessment.business_risk_score,  # Add the calculated score
-                "business_risk": risk_assessment.business_risk.value[1],  # Get the string part of the tuple
-                "impact_description": risk_assessment.impact_description,
-                "likelihood_description": risk_assessment.likelihood_description,
-                "business_context": risk_assessment.business_context,
-                "remediation_priority": risk_assessment.remediation_priority,
-                "cost_estimate": risk_assessment.cost_estimate,
-                "time_to_fix": risk_assessment.time_to_fix,
-            }
-
-            # Add parsed fixes to file findings
-            for file_finding, fix in zip(files, file_fixes):
-                file_finding["ai_fix"] = fix
+            query["ai_explanation"] = ai_explanation_clean
+            query["remediation_code"] = code_block
 
         except Exception as e:
-            print(f"⚠️ Error processing {query_name}: {e}")
-            query["ai_explanation"] = f"AI explanation generation failed: {str(e)}"
-            # Add default fixes for files
-            for file_finding in files:
-                file_finding["ai_fix"] = "AI fix generation failed"
+            print(f"❌ Error in AI explanation for {query_name}: {e}")
+            query["ai_explanation"] = f"Error: {e}"
+            query["remediation_code"] = None
 
+        # Get business risk assessment
+        query["risk_assessment"] = {
+            "impact": risk_assessment.impact.value[1],
+            "likelihood": risk_assessment.likelihood.value[1],
+            "business_risk_score": risk_assessment.business_risk_score,
+            "business_risk": risk_assessment.business_risk.value[1],
+            "impact_description": risk_assessment.impact_description,
+            "likelihood_description": risk_assessment.likelihood_description,
+            "business_context": risk_assessment.business_context,
+            "remediation_priority": risk_assessment.remediation_priority,
+            "cost_estimate": risk_assessment.cost_estimate,
+            "time_to_fix": risk_assessment.time_to_fix,
+        }
         return query
 
-    # Process queries in parallel with limited concurrency
+    # Use ThreadPoolExecutor for parallel API calls
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        # Submit all queries for processing
-        future_to_query = {executor.submit(process_single_query, query): query for query in queries_with_findings}
-
-        # Collect results as they complete
+        future_to_query = {executor.submit(process_single_query, q): q for q in queries_with_findings}
         for future in as_completed(future_to_query):
-            query = future_to_query[future]
-            try:
-                enriched_query = future.result()
-                enriched_queries.append(enriched_query)
-            except Exception as e:
-                print(f"❌ Error processing query {query.get('query_name', 'Unknown')}: {e}")
-                enriched_queries.append(query)
+            enriched_queries.append(future.result())
 
-    # Add queries without findings
+    # Add queries without findings back in
     enriched_queries.extend(queries_without_findings)
-
+    # Preserve original order
+    enriched_queries.sort(key=lambda q: queries.index(q))
     return enriched_queries
 
 
@@ -240,38 +229,44 @@ def parse_ai_response_for_fixes(ai_response: str, files: List[Dict]) -> List[str
     return fixes[: len(files)]  # Ensure we don't have more fixes than files
 
 
-def explain_findings(queries: List[Dict], output_html: Optional[str] = None) -> List[Dict]:
+def explain_findings(queries: List[Dict], output_html: Optional[str] = None, return_per_query: bool = False) -> Any:
     """
     Generate AI-powered explanations for security findings with business risk context.
-    Optimized for performance with parallel processing and reduced API calls.
-
-    Args:
-        queries: List of query results from KICS
-        output_html: Optional path for HTML output file
-
-    Returns:
-        List of queries with AI explanations and business risk assessment added
+    If return_per_query is True, returns a list of markdown strings (one per query, in order).
+    Otherwise, returns a single markdown string as before.
     """
     # Get API key with fallback support
     api_key = config.settings.get_openai_api_key()
     if not api_key:
         print("⚠️ No OpenAI API key available. AI explanations will be disabled.")
         print("💡 Set OPENAI_API_KEY environment variable or use demo mode.")
-        return queries
+        if return_per_query:
+            return ["# AI Analysis\n\nNo OpenAI API key available. AI explanations are disabled."] * len(queries)
+        return "# AI Analysis\n\nNo OpenAI API key available. AI explanations are disabled."
 
     client = OpenAI(api_key=api_key)
+
+    # Count queries with findings
+    queries_with_findings = [q for q in queries if q.get("files")]
 
     # Use parallel processing with limited concurrency to avoid rate limits
     max_workers = min(
         config.settings.ai_max_concurrent_requests,
-        len([q for q in queries if q.get("files")]),
+        max(1, len(queries_with_findings)),  # Ensure at least 1 worker
     )
 
     print(f"🚀 Starting AI explanation generation...")
     print(f"📊 Total queries: {len(queries)}")
-    print(f"🔍 Queries with findings: {len([q for q in queries if q.get('files')])}")
+    print(f"🔍 Queries with findings: {len(queries_with_findings)}")
     print(f"⚡ Using {max_workers} concurrent workers")
     print(f"⏱️ Request timeout: {config.settings.ai_request_timeout}s")
+
+    # If no findings, return early with a success message
+    if not queries_with_findings:
+        print("✅ No security findings to analyze - skipping AI analysis")
+        if return_per_query:
+            return ["# AI Analysis\n\n✅ No security findings detected. Your infrastructure appears to follow security best practices! 🛡️"] * len(queries)
+        return "# AI Analysis\n\n✅ No security findings detected. Your infrastructure appears to follow security best practices! 🛡️"
 
     start_time = time.time()
 
@@ -279,44 +274,52 @@ def explain_findings(queries: List[Dict], output_html: Optional[str] = None) -> 
 
     total_time = time.time() - start_time
     print(f"✅ AI explanation generation completed in {total_time:.2f}s")
-    print(f"📈 Average time per query: {total_time/max(1, len([q for q in queries if q.get('files')])):.2f}s")
+    print(f"📈 Average time per query: {total_time/max(1, len(queries_with_findings)):.2f}s")
 
-    # Generate HTML report if requested
-    if output_html:
-        # Calculate total cost for HTML report
-        total_cost = 0.0
-        for query in queries:
+    if return_per_query:
+        # Return a list of markdown strings, one per query, in order
+        per_query_md = []
+        for query in enriched_queries:
+            query_name = query.get("query_name", "Unknown")
+            severity = query.get("severity", "UNKNOWN")
+            description = query.get("description", "No description")
+            ai_explanation = query.get("ai_explanation", "No AI explanation available")
             risk_assessment = query.get("risk_assessment", {})
-            cost_str = risk_assessment.get("cost_estimate", "$0")
+            # Just return the AI explanation markdown (already formatted)
+            per_query_md.append(ai_explanation if ai_explanation else "No AI explanation available.")
+        return per_query_md
 
-            # Parse cost string to extract numerical value
-            if "$" in cost_str:
-                try:
-                    # Remove $ and any text in parentheses
-                    cost_clean = cost_str.replace("$", "").split("(")[0].strip()
+    # Generate markdown report as before
+    markdown_content = "# AI-Powered Security Analysis\n\n"
+    markdown_content += f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
 
-                    # Handle K notation (e.g., "1K" = 1000)
-                    if "K" in cost_clean:
-                        cost_clean = cost_clean.replace("K", "000")
+    if enriched_queries:
+        markdown_content += f"## Summary\n\n"
+        markdown_content += f"- **Total Findings Analyzed:** {len(enriched_queries)}\n"
+        markdown_content += f"- **Analysis Time:** {total_time:.2f} seconds\n\n"
 
-                    # Handle ranges (e.g., "1K-10K")
-                    if "-" in cost_clean:
-                        min_cost, max_cost = cost_clean.split("-")
-                        avg_cost = (float(min_cost) + float(max_cost)) / 2
-                    else:
-                        # Remove any remaining non-numeric characters
-                        cost_clean = "".join(c for c in cost_clean if c.isdigit() or c == ".")
-                        avg_cost = float(cost_clean) if cost_clean else 0.0
+        for query in enriched_queries:
+            if query.get("files"):
+                query_name = query.get("query_name", "Unknown")
+                severity = query.get("severity", "UNKNOWN")
+                description = query.get("description", "No description")
+                ai_explanation = query.get("ai_explanation", "No AI explanation available")
+                risk_assessment = query.get("risk_assessment", {})
 
-                    total_cost += avg_cost
-                    print(f"🔍 Debug - Parsed cost '{cost_str}' to {avg_cost}, total now: {total_cost}")
-                except (ValueError, AttributeError) as e:
-                    print(f"🔍 Debug - Could not parse cost '{cost_str}': {e}")
-                    continue
+                markdown_content += f"## {query_name}\n\n"
+                markdown_content += f"**Severity:** {severity}\n\n"
+                markdown_content += f"**Description:** {description}\n\n"
+                markdown_content += f"**AI Analysis:**\n{ai_explanation}\n\n"
 
-        generate_html_report(enriched_queries, output_html, total_cost)
+                if risk_assessment:
+                    markdown_content += f"**Business Risk Assessment:**\n"
+                    markdown_content += f"- **Risk Level:** {risk_assessment.get('risk_level', 'Unknown')}\n"
+                    markdown_content += f"- **Potential Cost:** {risk_assessment.get('cost_estimate', 'Unknown')}\n"
+                    markdown_content += f"- **Business Impact:** {risk_assessment.get('business_impact', 'Unknown')}\n\n"
 
-    return enriched_queries
+                markdown_content += "---\n\n"
+
+    return markdown_content
 
 
 def generate_html_report(queries: List[Dict], output_path: str, total_cost: float = None) -> None:

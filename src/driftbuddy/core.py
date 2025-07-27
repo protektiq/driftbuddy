@@ -7,6 +7,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List
 
+import markdown
+
 from src.agent.explainer import explain_findings, load_kics_results
 
 from .config import get_config
@@ -136,7 +138,7 @@ def validate_scan_path(scan_path: str) -> bool:
 @handle_exception
 def run_kics(scan_path: str, output_dir: str = "test_data/output") -> Dict[str, Any]:
     """Run KICS scan with comprehensive error handling"""
-    print(f"🔍 Starting KICS scan of: {scan_path}")
+    print(f"🔍 Starting DriftBuddy scan of: {scan_path}")
 
     # Validate scan path
     if not validate_scan_path(scan_path):
@@ -162,21 +164,21 @@ def run_kics(scan_path: str, output_dir: str = "test_data/output") -> Dict[str, 
         try:
             result = subprocess.run(test_cmd, capture_output=True, text=True, timeout=10)  # noqa: E501
             if result.returncode != 0:
-                print("⚠️ Local KICS has issues, trying Docker...")
+                print("⚠️ Local DriftBuddy engine has issues, trying Docker...")
                 use_docker = True
         except:
-            print("⚠️ Local KICS test failed, trying Docker...")
+            print("⚠️ Local DriftBuddy engine test failed, trying Docker...")
             use_docker = True
 
     # Skip the test scan and go directly to using local KICS if available
     if not use_docker:
-        print("💡 Using local KICS installation")
+        print("💡 Using local DriftBuddy engine")
         return run_kics_local(scan_path, output_dir)
     else:
         if not check_docker_kics():
             return {
                 "success": False,
-                "error": "Neither local KICS nor Docker KICS is available",
+                "error": "Neither local DriftBuddy engine nor Docker engine is available",
             }
         return run_kics_docker(scan_path, output_dir)
 
@@ -245,7 +247,7 @@ def run_kics_docker(scan_path: str, output_dir: str) -> Dict[str, Any]:
 @handle_exception
 def run_kics_local(scan_path: str, output_dir: str) -> Dict[str, Any]:
     """Run KICS scan using local installation"""
-    print(f"🔍 Starting KICS local scan of: {scan_path}")
+    print(f"🔍 Starting DriftBuddy local scan of: {scan_path}")
 
     # Ensure output directory exists
     Path(output_dir).mkdir(parents=True, exist_ok=True)
@@ -255,17 +257,8 @@ def run_kics_local(scan_path: str, output_dir: str) -> Dict[str, Any]:
     output_file = os.path.join(output_dir, f"kics_results_{timestamp}.json")
 
     def run_kics_command(use_queries_path: bool = True) -> subprocess.CompletedProcess:
-        """Run KICS command with optional queries path"""
-        cmd = [
-            "kics",
-            "scan",
-            "-p",
-            scan_path,
-            "-o",
-            output_dir,
-            "--output-name",
-            f"kics_results_{timestamp}.json",
-        ]
+        """Run DriftBuddy engine command with optional queries path"""
+        cmd = ["kics", "scan", "-p", scan_path, "-o", output_dir, "--output-name", f"kics_results_{timestamp}.json", "--report-formats", "json"]
 
         # Add queries path if available
         config = get_config()
@@ -273,47 +266,105 @@ def run_kics_local(scan_path: str, output_dir: str) -> Dict[str, Any]:
         if use_queries_path and queries_path and os.path.exists(queries_path):
             cmd.extend(["-q", queries_path])
 
-        return subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+        # Display DriftBuddy ASCII art logo
+        driftbuddy_logo = """
+   ######                        ######                             
+#     # #####  # ###### ##### #     # #    # #####  #####  #   # 
+#     # #    # # #        #   #     # #    # #    # #    #  # #  
+#     # #    # # #####    #   ######  #    # #    # #    #   #   
+#     # #####  # #        #   #     # #    # #    # #    #   #   
+#     # #   #  # #        #   #     # #    # #    # #    #   #   
+######  #    # # #        #   ######   ####  #####  #####    #  
+                                                                                                        
+    🔍 Infrastructure Security Analysis Tool
+    🛡️  Keeping Your Infrastructure as Code Secure
+    """
+        print(driftbuddy_logo)
+
+        print(f"🔧 Running DriftBuddy engine command: {' '.join(cmd)}")
+
+        # Run with output capture to filter KICS branding
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+
+        # Filter out KICS ASCII art and branding from stdout
+        if result.stdout:
+            lines = result.stdout.split("\n")
+            filtered_lines = []
+            skip_ascii_art = False
+
+            for line in lines:
+                # Skip lines that are part of the KICS ASCII art logo
+                if any(char in line for char in ["M", "L", "K"]) and len(line.strip()) > 10:
+                    # This looks like ASCII art, skip it
+                    continue
+                elif "Scanning with Keeping Infrastructure as Code Secure" in line:
+                    # Skip the KICS branding line
+                    continue
+                elif "Preparing Scan Assets:" in line:
+                    # Keep the progress indicator but replace with DriftBuddy branding
+                    filtered_lines.append("Preparing DriftBuddy scan assets...")
+                    continue
+                else:
+                    filtered_lines.append(line)
+
+            # Reconstruct stdout without the KICS branding
+            result.stdout = "\n".join(filtered_lines)
+
+        return result
 
     try:
-        print("🚀 Running KICS locally...")
+        print("🚀 Running DriftBuddy locally...")
         result = run_kics_command()
 
+        # Display filtered output
+        if result.stdout:
+            print(result.stdout)
+
         if result.returncode == 0:
-            print(f"✅ KICS local scan completed successfully")
+            print(f"✅ DriftBuddy local scan completed successfully")
             print(f"📄 Results saved to: {output_file}")
             return {
                 "success": True,
                 "output_file": output_file,
                 "stdout": result.stdout,
             }
+        elif result.returncode == 60:
+            # Exit code 60 usually means no files found or no issues detected
+            print(f"ℹ️ DriftBuddy scan completed with exit code 60 (no issues found)")
+            print(f"📄 Results saved to: {output_file}")
+            return {"success": True, "output_file": output_file, "stdout": result.stdout, "no_issues": True}
         else:
             # Try without queries path if first attempt failed
-            print(f"⚠️ First KICS attempt failed, trying without queries path...")
+            print(f"⚠️ First DriftBuddy attempt failed (exit code: {result.returncode}), trying without queries path...")
             result = run_kics_command(use_queries_path=False)
 
             if result.returncode == 0:
-                print(f"✅ KICS local scan completed successfully (without queries path)")
+                print(f"✅ DriftBuddy local scan completed successfully (without queries path)")
                 print(f"📄 Results saved to: {output_file}")
                 return {
                     "success": True,
                     "output_file": output_file,
                     "stdout": result.stdout,
                 }
+            elif result.returncode == 60:
+                print(f"ℹ️ DriftBuddy scan completed with exit code 60 (no issues found)")
+                print(f"📄 Results saved to: {output_file}")
+                return {"success": True, "output_file": output_file, "stdout": result.stdout, "no_issues": True}
             else:
-                print(f"❌ KICS local scan failed with exit code: {result.returncode}")
-                print(f"Error: {result.stderr}")
+                print(f"❌ DriftBuddy local scan failed with exit code: {result.returncode}")
+                if result.stderr:
+                    print(f"Error: {result.stderr}")
                 return {
                     "success": False,
-                    "error": result.stderr,
+                    "error": result.stderr or f"Exit code: {result.returncode}",
                     "exit_code": result.returncode,
                 }
     except subprocess.TimeoutExpired:
-        error_msg = "KICS local scan timed out after 5 minutes"
+        error_msg = "DriftBuddy local scan timed out after 5 minutes"
         print(f"❌ {error_msg}")
         return {"success": False, "error": error_msg}
     except Exception as e:
-        error_msg = f"Error running KICS local scan: {str(e)}"
+        error_msg = f"Error running DriftBuddy local scan: {str(e)}"
         print(f"❌ {error_msg}")
         return {"success": False, "error": error_msg}
 
@@ -611,25 +662,407 @@ def check_steampipe_installation() -> bool:
 
 @handle_exception
 def main() -> None:
-    """Main function for testing the core functionality."""
-    print("🔍 Testing DriftBuddy core functionality...")
+    """Main function for DriftBuddy security scanning."""
+    parser = argparse.ArgumentParser(
+        description="DriftBuddy - Infrastructure Configuration Analysis Tool",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  python driftbuddy.py --scan-path ./terraform/ --output-format html
+  python driftbuddy.py --scan-path ./k8s/ --enable-ai --output-format md
+  python driftbuddy.py --scan-path . --all --reports-dir ./security-reports
+        """,
+    )
 
-    # Test KICS installation
-    print("\n📋 Checking KICS installation...")
-    kics_available = check_kics_installation()
-    print(f"KICS available: {kics_available}")
+    parser.add_argument("--scan-path", default=".", help="Path to scan for infrastructure files (default: current directory)")
+    parser.add_argument("--output-format", choices=["html", "md", "json", "all"], default="html", help="Output format for reports (default: html)")
+    parser.add_argument("--enable-ai", action="store_true", help="Enable AI-powered analysis and recommendations")
+    parser.add_argument("--reports-dir", default="outputs/reports", help="Directory to save reports (default: outputs/reports)")
+    parser.add_argument("--all", action="store_true", help="Run all available scans (KICS + Steampipe if available)")
+    parser.add_argument("--kics-only", action="store_true", help="Run only KICS scan")
+    parser.add_argument("--steampipe-only", action="store_true", help="Run only Steampipe scan (requires cloud credentials)")
+    parser.add_argument("--cloud-provider", choices=["aws", "azure", "gcp"], default="aws", help="Cloud provider for Steampipe scans (default: aws)")
+    parser.add_argument("--test", action="store_true", help="Run functionality test only")
 
-    # Test Docker KICS
-    print("\n🐳 Checking Docker KICS...")
-    docker_kics_available = check_docker_kics()
-    print(f"Docker KICS available: {docker_kics_available}")
+    args = parser.parse_args()
 
-    # Test Steampipe installation
-    print("\n🔧 Checking Steampipe installation...")
-    steampipe_available = check_steampipe_installation()
-    print(f"Steampipe available: {steampipe_available}")
+    # If test mode is requested, run the functionality test
+    if args.test:
+        print("🔍 Testing DriftBuddy core functionality...")
 
-    print("\n✅ Core functionality test completed")
+        # Test KICS installation
+        print("\n📋 Checking KICS installation...")
+        kics_available = check_kics_installation()
+        print(f"KICS available: {kics_available}")
+
+        # Test Docker KICS
+        print("\n🐳 Checking Docker KICS...")
+        docker_kics_available = check_docker_kics()
+        print(f"Docker KICS available: {docker_kics_available}")
+
+        # Test Steampipe installation
+        print("\n🔧 Checking Steampipe installation...")
+        steampipe_available = check_steampipe_installation()
+        print(f"Steampipe available: {steampipe_available}")
+
+        print("\n✅ Core functionality test completed")
+        return
+
+    # Validate scan path
+    scan_path = Path(args.scan_path)
+    if not scan_path.exists():
+        print(f"❌ Error: Scan path '{args.scan_path}' does not exist")
+        sys.exit(1)
+
+    print(f"🔍 Starting DriftBuddy security scan...")
+    print(f"📁 Scan path: {scan_path.absolute()}")
+    print(f"📊 Output format: {args.output_format}")
+    print(f"🤖 AI analysis: {'Enabled' if args.enable_ai else 'Disabled'}")
+
+    # Ensure reports directory exists
+    reports_dir = Path(args.reports_dir)
+    reports_dir.mkdir(parents=True, exist_ok=True)
+
+    all_results = []
+
+    # Run KICS scan
+    if args.all or args.kics_only or not args.steampipe_only:
+        print("\n🔍 Running DriftBuddy security scan...")
+        try:
+            kics_results = run_kics(str(scan_path), str(reports_dir))
+            if kics_results and kics_results.get("success"):
+                # Load the actual results from the file
+                output_file = kics_results.get("output_file")
+                if output_file and os.path.exists(output_file):
+                    loaded_results = load_kics_results_safe(output_file)
+                    if "error" not in loaded_results:
+                        # Extract queries from the loaded results
+                        queries = loaded_results.get("queries", [])
+                        if queries:
+                            all_results.append({"queries": queries, "source": "kics"})
+                            print(f"✅ DriftBuddy scan completed - Found {len(queries)} findings")
+                        else:
+                            print("✅ DriftBuddy scan completed - No security issues found")
+                    else:
+                        print(f"⚠️ DriftBuddy scan completed but failed to load results: {loaded_results.get('error')}")
+                else:
+                    print("⚠️ DriftBuddy scan completed but no results file found")
+            else:
+                error_msg = kics_results.get("error", "Unknown error") if kics_results else "No results returned"
+                print(f"❌ DriftBuddy scan failed: {error_msg}")
+        except Exception as e:
+            print(f"❌ DriftBuddy scan failed: {str(e)}")
+
+    # Run Steampipe scan if available and requested
+    if (args.all or args.steampipe_only) and STEAMPIPE_AVAILABLE:
+        print(f"\n🔍 Running Steampipe scan for {args.cloud_provider}...")
+        try:
+            steampipe_results = run_steampipe_scan(args.cloud_provider, "security")
+            if steampipe_results:
+                all_results.append(steampipe_results)
+                print(f"✅ Steampipe scan completed - Found {len(steampipe_results.get('findings', []))} findings")
+            else:
+                print("⚠️ Steampipe scan completed but no results found")
+        except Exception as e:
+            print(f"❌ Steampipe scan failed: {str(e)}")
+
+    # Generate reports
+    if all_results:
+        print(f"\n📊 Generating reports...")
+
+        # Generate markdown report
+        if args.output_format in ["md", "all"]:
+            try:
+                md_report = render_markdown_report(all_results)
+                md_filename = generate_timestamped_filename("security_report", "md", str(reports_dir))
+                with open(md_filename, "w", encoding="utf-8") as f:
+                    f.write(md_report)
+                print(f"✅ Markdown report saved: {md_filename}")
+            except Exception as e:
+                print(f"❌ Failed to generate markdown report: {str(e)}")
+
+        # AI analysis if enabled
+        ai_explanations = None
+        if args.enable_ai:
+            print("\n🤖 Running AI analysis...")
+            try:
+                # Extract all queries from results
+                all_queries = []
+                for result in all_results:
+                    if "queries" in result:
+                        all_queries.extend(result["queries"])
+
+                if all_queries:
+                    # Get AI explanations for all findings (returns markdown for each query)
+                    ai_explanations_list = explain_findings(all_queries, return_per_query=True)
+                    # Attach AI explanation to each query
+                    for query, ai_md in zip(all_queries, ai_explanations_list):
+                        query["ai_explanation"] = ai_md
+                else:
+                    print("ℹ️ No security findings to analyze - skipping AI analysis")
+            except Exception as e:
+                print(f"❌ AI analysis failed: {str(e)}")
+
+        # Generate HTML report
+        if args.output_format in ["html", "all"]:
+            try:
+                # Extract all queries from results
+                all_queries = []
+                for result in all_results:
+                    if "queries" in result:
+                        all_queries.extend(result["queries"])
+
+                if all_queries:
+                    # Generate comprehensive risk report
+                    risk_report = generate_risk_report(all_queries)
+
+                    # Create comprehensive HTML report
+                    html_content = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DriftBuddy Security Report</title>
+    <meta charset="utf-8">
+    <style>
+        body {{ font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }}
+        .header {{ background: #f0f0f0; padding: 20px; border-radius: 5px; margin-bottom: 30px; }}
+        .executive-summary {{ background: #fff; padding: 20px; border-radius: 5px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
+        .risk-cards {{ display: flex; gap: 15px; margin: 20px 0; flex-wrap: wrap; }}
+        .risk-card {{ 
+            flex: 1; min-width: 120px; padding: 15px; border-radius: 8px; text-align: center; color: white; font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }}
+        .critical {{ background: linear-gradient(135deg, #ff6b6b, #ff5252); }}
+        .high {{ background: linear-gradient(135deg, #ff8c42, #ff7043); }}
+        .medium {{ background: linear-gradient(135deg, #42a5f5, #2196f3); }}
+        .low {{ background: linear-gradient(135deg, #66bb6a, #4caf50); }}
+        .minimal {{ background: linear-gradient(135deg, #9e9e9e, #757575); }}
+        .financial-impact {{ background: #ffebee; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f44336; }}
+        .risk-matrix {{ margin: 20px 0; }}
+        .risk-matrix table {{ border-collapse: collapse; width: 100%; }}
+        .risk-matrix th, .risk-matrix td {{ border: 1px solid #ddd; padding: 8px; text-align: center; }}
+        .risk-matrix th {{ background: #f5f5f5; font-weight: bold; }}
+        .finding {{ margin: 20px 0; padding: 15px; border-left: 4px solid #ff6b6b; background: #fff5f5; border-radius: 4px; }}
+        .critical-finding {{ border-left-color: #ff6b6b; }}
+        .high-finding {{ border-left-color: #ff8c42; }}
+        .medium-finding {{ border-left-color: #42a5f5; }}
+        .low-finding {{ border-left-color: #66bb6a; }}
+        .minimal-finding {{ border-left-color: #9e9e9e; }}
+        .metrics {{ display: flex; gap: 20px; margin: 20px 0; }}
+        .metric {{ flex: 1; text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px; }}
+        .metric h3 {{ margin: 0; color: #333; }}
+        .metric p {{ margin: 5px 0; font-size: 24px; font-weight: bold; color: #666; }}
+        .risk-section {{ background: #fffde7; border-left: 6px solid #ffe082; padding: 16px; margin: 20px 0 10px 0; border-radius: 6px; }}
+        .ai-section {{ background: #e3f2fd; border-left: 6px solid #64b5f6; padding: 16px; margin: 10px 0 20px 0; border-radius: 6px; }}
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔍 DriftBuddy Security Report</h1>
+        <p><strong>Generated:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+        <p><strong>Scan Path:</strong> {scan_path.absolute()}</p>
+    </div>
+    
+    <div class="executive-summary">
+        <h2>📊 Executive Summary</h2>
+        <p>This report contains AI-powered explanations of security findings with business risk assessment.</p>
+        
+        <div class="metrics">
+            <div class="metric">
+                <h3>Total Queries</h3>
+                <p>{risk_report.get('total_findings', 0)}</p>
+            </div>
+            <div class="metric">
+                <h3>Findings with Issues</h3>
+                <p>{risk_report.get('total_findings', 0)}</p>
+            </div>
+        </div>
+        
+        <div class="risk-cards">
+            <div class="risk-card critical">
+                <h3>Critical</h3>
+                <p>{risk_report.get('critical_findings', 0)}</p>
+            </div>
+            <div class="risk-card high">
+                <h3>High</h3>
+                <p>{risk_report.get('high_findings', 0)}</p>
+            </div>
+            <div class="risk-card medium">
+                <h3>Medium</h3>
+                <p>{risk_report.get('medium_findings', 0)}</p>
+            </div>
+            <div class="risk-card low">
+                <h3>Low</h3>
+                <p>{risk_report.get('low_findings', 0)}</p>
+            </div>
+            <div class="risk-card minimal">
+                <h3>Minimal</h3>
+                <p>{risk_report.get('minimal_findings', 0)}</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="financial-impact">
+        <h2>💰 Financial Impact</h2>
+        <p><strong>Total Estimated Cost of Inaction:</strong> {risk_report.get('total_estimated_cost', '$0')}</p>
+        <p><strong>Priority:</strong> Focus on Critical and High business risk findings first</p>
+    </div>
+    
+    <div class="risk-matrix">
+        <h2>📋 Risk Matrix (Impact × Likelihood = Business Risk Score)</h2>
+        <table>
+            <tr>
+                <th>Impact/Likelihood</th>
+                <th>Almost Certain (5)</th>
+                <th>Likely (4)</th>
+                <th>Possible (3)</th>
+                <th>Unlikely (2)</th>
+                <th>Rare (1)</th>
+            </tr>
+            <tr>
+                <td><strong>Catastrophic (5)</strong></td>
+                <td class="critical">Critical (25)</td>
+                <td class="critical">Critical (20)</td>
+                <td class="high">High (15)</td>
+                <td class="medium">Medium (10)</td>
+                <td class="low">Low (5)</td>
+            </tr>
+            <tr>
+                <td><strong>Major (4)</strong></td>
+                <td class="critical">Critical (20)</td>
+                <td class="high">High (16)</td>
+                <td class="high">High (12)</td>
+                <td class="medium">Medium (8)</td>
+                <td class="low">Low (4)</td>
+            </tr>
+            <tr>
+                <td><strong>Moderate (3)</strong></td>
+                <td class="high">High (15)</td>
+                <td class="medium">Medium (12)</td>
+                <td class="medium">Medium (9)</td>
+                <td class="low">Low (6)</td>
+                <td class="minimal">Minimal (3)</td>
+            </tr>
+            <tr>
+                <td><strong>Minor (2)</strong></td>
+                <td class="medium">Medium (10)</td>
+                <td class="low">Low (8)</td>
+                <td class="low">Low (6)</td>
+                <td class="minimal">Minimal (4)</td>
+                <td class="minimal">Minimal (2)</td>
+            </tr>
+            <tr>
+                <td><strong>Insignificant (1)</strong></td>
+                <td class="low">Low (5)</td>
+                <td class="minimal">Minimal (4)</td>
+                <td class="minimal">Minimal (3)</td>
+                <td class="minimal">Minimal (2)</td>
+                <td class="minimal">Minimal (1)</td>
+            </tr>
+        </table>
+    </div>
+    
+    <h2>🔍 Detailed Findings</h2>
+"""
+
+                    # Add detailed findings with risk assessment and AI explanation
+                    for query in all_queries:
+                        risk_assessment = query.get("risk_assessment", {})
+                        severity = query.get("severity", "medium").lower()
+                        risk_level = risk_assessment.get("business_risk", "medium").lower()
+
+                        html_content += f"""
+    <div class="finding {risk_level}-finding">
+        <h3>{query.get('query_name', 'Unknown')}</h3>
+        <p><strong>Technical Severity:</strong> {query.get('severity', 'Unknown')}</p>
+        <p><strong>Business Risk:</strong> {risk_assessment.get('business_risk', 'Unknown')}</p>
+        <p><strong>Description:</strong> {query.get('description', 'No description available')}</p>
+        <div class='risk-section'>
+            <strong>Business Risk Assessment</strong><br>
+            <b>Impact:</b> {risk_assessment.get('impact', 'Unknown')} - {risk_assessment.get('impact_description', 'Unknown')}<br>
+            <b>Likelihood:</b> {risk_assessment.get('likelihood', 'Unknown')} - {risk_assessment.get('likelihood_description', 'Unknown')}<br>
+            <b>Business Risk Score:</b> {risk_assessment.get('business_risk_score', 'Unknown')} (Impact × Likelihood)<br>
+            <b>Business Risk Level:</b> {risk_assessment.get('business_risk', 'Unknown')}<br>
+            <b>Remediation Priority:</b> {risk_assessment.get('remediation_priority', 'Unknown')}<br>
+            <b>Estimated Cost:</b> {risk_assessment.get('cost_estimate', 'Unknown')}<br>
+            <b>Time to Fix:</b> {risk_assessment.get('time_to_fix', 'Unknown')}<br>
+            <b>Business Context:</b> {risk_assessment.get('business_context', 'No business context available')}<br>
+        </div>
+"""
+
+                        # Add file information if available
+                        files = query.get("files", [])
+                        if files:
+                            html_content += f"<p><strong>Affected Files:</strong></p><ul>"
+                            for file_info in files:
+                                file_name = file_info.get("file_name", "Unknown")
+                                line_number = file_info.get("line", "Unknown")
+                                html_content += f"<li>{file_name}:{line_number}</li>"
+                            html_content += "</ul>"
+
+                        # Add AI explanation if available
+                        ai_md = query.get("ai_explanation")
+                        if ai_md:
+                            html_content += f"<div class='ai-section'><strong>AI Explanation</strong><br>{markdown.markdown(ai_md)}</div>"
+
+                        # Add remediation code if available
+                        remediation_code = query.get("remediation_code")
+                        if remediation_code:
+                            # Convert markdown code block to HTML
+                            html_content += f"<div class='ai-section'><strong>Remediation Code</strong><br>{markdown.markdown(remediation_code)}</div>"
+
+                        html_content += "</div>"
+
+                    html_content += """
+</body>
+</html>
+"""
+
+                    html_filename = generate_timestamped_filename("security_report", "html", str(reports_dir))
+                    with open(html_filename, "w", encoding="utf-8") as f:
+                        f.write(html_content)
+                    print(f"✅ HTML report saved: {html_filename}")
+                else:
+                    # Create a simple "no issues" report
+                    html_content = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DriftBuddy Security Report</title>
+    <meta charset="utf-8">
+    <style>
+        body {{ font-family: Arial, sans-serif; margin: 40px; text-align: center; }}
+        .header {{ background: #f0f0f0; padding: 20px; border-radius: 5px; margin-bottom: 30px; }}
+        .success {{ background: #e8f5e8; padding: 40px; border-radius: 8px; border: 2px solid #4caf50; }}
+        .success h2 {{ color: #2e7d32; }}
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔍 DriftBuddy Security Report</h1>
+        <p><strong>Generated:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+        <p><strong>Scan Path:</strong> {scan_path.absolute()}</p>
+    </div>
+    
+    <div class="success">
+        <h2>✅ No Security Issues Found!</h2>
+        <p>Your infrastructure appears to follow security best practices. 🛡️</p>
+        <p>Total findings: 0</p>
+    </div>
+</body>
+</html>
+"""
+                    html_filename = generate_timestamped_filename("security_report", "html", str(reports_dir))
+                    with open(html_filename, "w", encoding="utf-8") as f:
+                        f.write(html_content)
+                    print(f"✅ HTML report saved: {html_filename}")
+            except Exception as e:
+                print(f"❌ Failed to generate HTML report: {str(e)}")
+
+        print(f"\n✅ Scan completed! Reports saved in: {reports_dir.absolute()}")
+    else:
+        print("\n✅ Scan completed - No security issues found!")
+        print("🎉 Your infrastructure appears to follow security best practices!")
 
 
 if __name__ == "__main__":

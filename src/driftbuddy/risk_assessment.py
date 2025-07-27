@@ -481,18 +481,13 @@ def generate_risk_report(findings: List[Dict]) -> Dict[str, Any]:
         # Update summary
         risk_level_value = risk_assessment.business_risk.value[1]
 
-        print(f"🔍 Debug - risk_level_value type: {type(risk_level_value)}, value: {risk_level_value}")
-
         # Ensure risk_level_value is a string before calling .lower()
         if isinstance(risk_level_value, (tuple, list)):
             risk_level_value = str(risk_level_value[0]) if risk_level_value else "medium"
         elif not isinstance(risk_level_value, str):
             risk_level_value = str(risk_level_value)
 
-        print(f"🔍 Debug - risk_level_value after conversion: {risk_level_value}")
-
         risk_level = risk_level_value.lower()
-        print(f"🔍 Debug - risk_level: {risk_level}")
 
         # Map risk levels to expected summary keys
         risk_level_mapping = {
@@ -511,20 +506,24 @@ def generate_risk_report(findings: List[Dict]) -> Dict[str, Any]:
 
         # Use mapped key or default to "medium" if not found
         summary_key = risk_level_mapping.get(risk_level, "medium")
-        print(f"🔍 Debug - summary_key: {summary_key}")
-        print(f"🔍 Debug - risk_summary keys: {list(risk_summary.keys())}")
         risk_summary[summary_key] += 1
 
-        # Estimate costs (simplified calculation)
+        # Estimate costs (robust calculation)
         cost_str = risk_assessment.cost_estimate
-        if "$" in cost_str:
+        if cost_str:
             try:
-                cost_range = cost_str.replace("$", "").replace("K", "000").replace("+", "")
-                if "-" in cost_range:
-                    min_cost, max_cost = cost_range.split("-")
-                    avg_cost = (int(min_cost) + int(max_cost)) / 2
+                # Remove $ and any text in parentheses
+                cost_clean = cost_str.replace("$", "").split("(")[0].strip()
+                # Handle K notation (e.g., "5K-25K")
+                cost_clean = cost_clean.replace("K", "000").replace(",", "")
+                # Handle ranges (e.g., "5000-25000")
+                if "-" in cost_clean:
+                    min_cost, max_cost = cost_clean.split("-")
+                    min_cost = float(min_cost.strip()) if min_cost.strip() else 0
+                    max_cost = float(max_cost.strip()) if max_cost.strip() else 0
+                    avg_cost = (min_cost + max_cost) / 2
                 else:
-                    avg_cost = int(cost_range)
+                    avg_cost = float(cost_clean) if cost_clean else 0
                 total_estimated_cost += avg_cost
             except Exception:
                 pass

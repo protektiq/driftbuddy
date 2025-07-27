@@ -9,6 +9,7 @@
 - **Multi-format Support**: Terraform, Kubernetes, Docker, CloudFormation, and more
 - **Real-time Analysis**: Instant vulnerability detection and assessment
 - **Performance Optimized**: Parallel processing with configurable concurrency
+- **Clean Branding**: DriftBuddy-branded output with custom ASCII art logo
 
 ### 📊 **Business Risk Assessment**
 - **Impact × Likelihood Methodology**: Scientific risk calculation (1-25 scale)
@@ -22,16 +23,18 @@
 ### 🤖 **AI-Powered Insights**
 - **Intelligent Explanations**: Context-aware security issue descriptions
 - **Business Context**: Explains technical findings in business terms
-- **Specific Fixes**: Code-level remediation suggestions
+- **Specific Fixes**: Code-level remediation suggestions with example code
 - **Cost-Benefit Analysis**: Justifies security investments
 - **Performance Optimized**: Batch processing with concurrent API calls
+- **Deterministic Output**: Consistent AI responses with temperature=0
 
 ### 📈 **Comprehensive Reporting**
-- **Multiple Formats**: Markdown, HTML, and JSON reports
+- **Multiple Formats**: HTML, Markdown, and JSON reports
 - **Risk Visualization**: Color-coded risk matrix and summaries
 - **Executive Summary**: Business-focused security overview
 - **Actionable Recommendations**: Prioritized remediation steps
 - **Financial Impact Dashboard**: Total cost analysis and breakdown
+- **Embedded AI Analysis**: AI explanations and remediation code in main report
 
 ## 🎯 **Business Value**
 
@@ -104,7 +107,29 @@ python driftbuddy.py --scan-path ./k8s --output-format html --enable-ai
 python driftbuddy.py --scan-path ./docker --output-format json
 
 # Custom output directory
-python driftbuddy.py --scan-path ./cloudformation --output-dir ./reports
+python driftbuddy.py --scan-path ./cloudformation --reports-dir ./reports
+
+# Run all available scans (KICS + Steampipe if available)
+python driftbuddy.py --scan-path . --all --enable-ai
+
+# Test functionality only
+python driftbuddy.py --test
+```
+
+### **Command Line Options**
+```bash
+python driftbuddy.py [OPTIONS]
+
+Options:
+  --scan-path PATH        Path to scan for infrastructure files (default: current directory)
+  --output-format FORMAT  Output format: html, md, json, all (default: html)
+  --enable-ai            Enable AI-powered analysis and recommendations
+  --reports-dir DIR      Directory to save reports (default: outputs/reports)
+  --all                  Run all available scans (KICS + Steampipe if available)
+  --kics-only            Run only KICS scan
+  --steampipe-only       Run only Steampipe scan (requires cloud credentials)
+  --cloud-provider PROVIDER  Cloud provider for Steampipe scans: aws, azure, gcp (default: aws)
+  --test                 Run functionality test only
 ```
 
 ### **Performance Configuration**
@@ -181,49 +206,56 @@ DriftBuddy uses a scientific **Impact × Likelihood** methodology:
 
 ### **Console Output**
 ```
-🔍 DriftBuddy - Infrastructure Security Scanner
-==================================================
-🔍 Starting KICS infrastructure scan...
-📁 Scanning path: ./terraform
-✅ KICS scan completed successfully
-📊 Found 15 security queries
-🔍 Total findings: 8
+🔍 Starting DriftBuddy security scan...
+📁 Scan path: /path/to/terraform
+📊 Output format: html
+🤖 AI analysis: Enabled
 
-🤖 Generating AI explanations and business risk assessment...
+🔍 Running DriftBuddy security scan...
+🔍 Starting DriftBuddy scan of: /path/to/terraform
+✅ DriftBuddy engine found and accessible
+💡 Using local DriftBuddy engine
+🔍 Starting DriftBuddy local scan of: /path/to/terraform
+🚀 Running DriftBuddy locally...
+
+   ######                        ######                             
+#     # #####  # ###### ##### #     # #    # #####  #####  #   # 
+#     # #    # # #        #   #     # #    # #    # #    #  # #  
+#     # #    # # #####    #   ######  #    # #    # #    #   #   
+#     # #####  # #        #   #     # #    # #    # #    #   #   
+#     # #   #  # #        #   #     # #    # #    # #    #   #   
+######  #    # # #        #   ######   ####  #####  #####    #  
+    🔍 Infrastructure Security Analysis Tool
+    🛡️  Keeping Your Infrastructure as Code Secure
+
+🔧 Running DriftBuddy engine command: kics scan -p /path/to/terraform -o outputs/reports --output-name kics_results_20250125_143022.json --report-formats json
+
+Preparing DriftBuddy scan assets...
+Executing queries: [---------------------------------------------------] 100.00%
+
+✅ DriftBuddy scan completed - Found 4 findings
+📊 Generating reports...
+🤖 Running AI analysis...
 🚀 Starting AI explanation generation...
-📊 Total queries: 15
-🔍 Queries with findings: 8
+📊 Total queries: 4
+🔍 Queries with findings: 4
 ⚡ Using 3 concurrent workers
 ⏱️ Request timeout: 60s
 ✅ AI explanation generation completed in 12.45s
-📈 Average time per query: 1.56s
+📈 Average time per query: 3.11s
 
-📊 Business Risk Summary:
-   🔴 Critical: 2
-   🟠 High: 3
-   🟡 Medium: 2
-   🟢 Low: 1
-   ⚪ Minimal: 0
-💰 Total Estimated Cost: $125,000
-
-📝 Generating report...
-✅ HTML report generated: outputs/reports/driftbuddy_report_20250125_143022.html
-
-🎉 Scan completed successfully!
-📁 Report saved to: outputs/reports/driftbuddy_report_20250125_143022.html
-
-🚨 CRITICAL BUSINESS RISK DETECTED!
-   Immediate action required for critical findings.
+✅ HTML report saved: outputs/reports/driftbuddy_security_report_20250125_143022.html
+✅ Scan completed! Reports saved in: outputs/reports
 ```
 
-### **Report Features**
-- **Executive Summary**: Business-focused overview
+### **HTML Report Features**
+- **Executive Summary**: Business-focused overview with risk cards
 - **Risk Matrix**: Visual risk assessment with Impact × Likelihood methodology
-- **Detailed Findings**: Technical and business context
-- **AI Explanations**: Intelligent issue descriptions
-- **Specific Fixes**: Code-level remediation
-- **Cost Analysis**: Financial impact assessment with detailed breakdowns
-- **Action Plans**: Prioritized remediation steps
+- **Financial Impact**: Total estimated cost of inaction with detailed breakdown
+- **Detailed Findings**: Technical and business context for each issue
+- **AI Explanations**: Intelligent issue descriptions with business context
+- **Remediation Code**: Specific code examples to fix each issue
+- **Action Plans**: Prioritized remediation steps with time estimates
 - **Performance Metrics**: API call timing and optimization stats
 
 ## 🔧 **Configuration**
@@ -232,8 +264,8 @@ DriftBuddy uses a scientific **Impact × Likelihood** methodology:
 ```bash
 # OpenAI Configuration
 OPENAI_API_KEY=your-api-key
-OPENAI_MODEL=gpt-4
-OPENAI_MAX_TOKENS=2000
+OPENAI_MODEL=gpt-4o
+OPENAI_MAX_TOKENS=1200
 
 # AI Performance Settings
 AI_MAX_CONCURRENT_REQUESTS=3
@@ -258,8 +290,8 @@ Create a `.env` file in your project root:
 ```env
 # OpenAI Settings
 OPENAI_API_KEY=your-api-key-here
-OPENAI_MODEL=gpt-4
-OPENAI_MAX_TOKENS=2000
+OPENAI_MODEL=gpt-4o
+OPENAI_MAX_TOKENS=1200
 
 # AI Performance Settings
 AI_MAX_CONCURRENT_REQUESTS=3
@@ -272,7 +304,7 @@ ENABLE_BUSINESS_RISK_ASSESSMENT=true
 
 # Output Settings
 OUTPUT_DIR=outputs/reports
-REPORT_FORMAT=markdown
+REPORT_FORMAT=html
 
 # Security Settings
 ENABLE_DEMO_MODE=false
@@ -283,12 +315,12 @@ ENABLE_DEMO_MODE=false
 ```
 driftbuddy/
 ├── src/driftbuddy/
-│   ├── core.py              # Main application logic
+│   ├── core.py              # Main application logic with CLI interface
 │   ├── config.py            # Configuration management
 │   ├── risk_assessment.py   # Business risk assessment (Impact × Likelihood)
 │   └── exceptions.py        # Error handling
 ├── src/agent/
-│   └── explainer.py         # AI explanation agent (optimized)
+│   └── explainer.py         # AI explanation agent with remediation code
 ├── scripts/
 │   ├── setup_api_key.py     # API key setup
 │   ├── security_scan.py     # Security checks
@@ -328,6 +360,9 @@ python driftbuddy.py --scan-path ./test_data/iac_example --enable-ai
 
 # Test risk calculation
 python demo_risk_calculation.py
+
+# Test functionality
+python driftbuddy.py --test
 ```
 
 ## 🚀 **Performance Optimizations**
@@ -338,12 +373,19 @@ python demo_risk_calculation.py
 - **Configurable Concurrency**: Adjustable worker count
 - **Request Timeout**: Configurable timeout settings
 - **Performance Monitoring**: Detailed timing metrics
+- **Deterministic Output**: Consistent AI responses with temperature=0
 
 ### **Cost Calculation Enhancements**
 - **Realistic Cost Ranges**: Industry-standard incident response costs
 - **Vulnerability-Specific Estimates**: Different costs for different issue types
 - **Total Cost Aggregation**: Sum of all potential incident costs
 - **Cost Parsing**: Robust parsing of cost strings with descriptions
+
+### **Report Generation**
+- **Comprehensive HTML Reports**: Executive summary, risk matrix, financial impact
+- **Embedded AI Analysis**: AI explanations and remediation code in main report
+- **Clean Branding**: DriftBuddy ASCII art logo and consistent messaging
+- **Filtered Output**: Removes KICS branding for clean DriftBuddy experience
 
 ## 🤝 **Contributing**
 
@@ -385,12 +427,16 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 See [CHANGELOG.md](CHANGELOG.md) for a complete list of changes and version history.
 
 ### **Recent Improvements**
+- ✅ **CLI Interface**: Full command-line interface with argparse
+- ✅ **HTML Report Generation**: Comprehensive reports with risk matrix and financial impact
+- ✅ **AI-Powered Explanations**: Context-aware descriptions with remediation code
+- ✅ **DriftBuddy Branding**: Custom ASCII art logo and consistent messaging
 - ✅ **Impact × Likelihood Methodology**: Scientific risk calculation (1-25 scale)
 - ✅ **Performance Optimizations**: Parallel processing and batch API calls
 - ✅ **Cost Calculation**: Realistic financial impact analysis
-- ✅ **HTML Report Enhancements**: Improved risk visualization and cost breakdowns
+- ✅ **Deterministic AI Output**: Consistent responses with temperature=0
+- ✅ **Embedded AI Analysis**: AI explanations and code examples in main report
 - ✅ **Error Handling**: Robust type checking and data validation
-- ✅ **Debug Output**: Comprehensive logging for troubleshooting
 
 ---
 

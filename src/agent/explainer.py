@@ -13,8 +13,8 @@ from typing import Any, Dict, List, Optional
 
 from openai import OpenAI
 
-from driftbuddy.config import get_config
-from driftbuddy.risk_assessment import RiskMatrix
+from src.driftbuddy.config import get_config
+from src.driftbuddy.risk_assessment import RiskMatrix
 
 # Load configuration
 config = get_config()

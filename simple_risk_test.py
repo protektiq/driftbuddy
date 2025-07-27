@@ -21,7 +21,11 @@ def test_risk_calculations():
 
     # Import the risk assessment module directly
     try:
-        from driftbuddy.risk_assessment import ImpactLevel, LikelihoodLevel, RiskMatrix
+        from src.driftbuddy.risk_assessment import (
+            ImpactLevel,
+            LikelihoodLevel,
+            RiskMatrix,
+        )
     except ImportError as e:
         print(f"❌ Import error: {e}")
         print("💡 Trying alternative import path...")

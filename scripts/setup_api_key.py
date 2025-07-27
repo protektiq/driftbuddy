@@ -133,7 +133,7 @@ def test_configuration() -> bool:
     # Try to import and test the configuration
     try:
         sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
-        from driftbuddy.config import get_config
+        from src.driftbuddy.config import get_config
 
         config = get_config()
         test_key = config.settings.get_openai_api_key()

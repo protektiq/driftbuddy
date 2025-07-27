@@ -19,7 +19,11 @@ def test_risk_assessment():
     print("=" * 50)
 
     try:
-        from driftbuddy.risk_assessment import ImpactLevel, LikelihoodLevel, RiskMatrix
+        from src.driftbuddy.risk_assessment import (
+            ImpactLevel,
+            LikelihoodLevel,
+            RiskMatrix,
+        )
 
         # Test case that might be causing the issue
         test_cases = [

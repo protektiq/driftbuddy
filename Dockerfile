@@ -1,72 +1,65 @@
-# Multi-stage build for DriftBuddy
-FROM python:3.11-slim as builder
+# Multi-stage Dockerfile for DriftBuddy
+FROM python:3.11-slim as base
 
 # Set environment variables
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV DEBIAN_FRONTEND=noninteractive
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
+    build-essential \
     curl \
-    wget \
     git \
+    wget \
+    unzip \
     && rm -rf /var/lib/apt/lists/*
 
-# Create virtual environment
-RUN python -m venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
+# Install Go for KICS
+RUN wget https://go.dev/dl/go1.21.0.linux-amd64.tar.gz \
+    && tar -C /usr/local -xzf go1.21.0.linux-amd64.tar.gz \
+    && rm go1.21.0.linux-amd64.tar.gz
 
-# Copy requirements and install dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+ENV PATH=$PATH:/usr/local/go/bin
 
-# Production stage
-FROM python:3.11-slim
+# Install KICS
+RUN git clone https://github.com/Checkmarx/kics.git \
+    && cd kics \
+    && go mod vendor \
+    && go build -o ./bin/kics cmd/console/main.go \
+    && mv ./bin/kics /usr/local/bin/ \
+    && chmod +x /usr/local/bin/kics \
+    && cd .. \
+    && rm -rf kics
 
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PATH="/opt/venv/bin:$PATH"
-
-# Install runtime dependencies
-RUN apt-get update && apt-get install -y \
-    curl \
-    wget \
-    git \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy virtual environment from builder
-COPY --from=builder /opt/venv /opt/venv
-
-# Create non-root user
-RUN groupadd -r driftbuddy && useradd -r -g driftbuddy driftbuddy
-
-# Create application directory
+# Set working directory
 WORKDIR /app
 
+# Copy requirements first for better caching
+COPY requirements.txt requirements-web-v3-minimal.txt ./
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt \
+    && pip install --no-cache-dir -r requirements-web-v3-minimal.txt
+
 # Copy application code
-COPY src/ ./src/
-COPY driftbuddy-cli.py .
-COPY pyproject.toml .
-COPY README.md .
-COPY LICENSE .
+COPY . .
 
 # Create necessary directories
-RUN mkdir -p outputs/reports outputs/analysis test_data/output \
+RUN mkdir -p /app/uploads /app/reports /app/logs
+
+# Create non-root user
+RUN useradd --create-home --shell /bin/bash driftbuddy \
     && chown -R driftbuddy:driftbuddy /app
 
-# Switch to non-root user
 USER driftbuddy
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import sys; sys.exit(0)" || exit 1
+# Expose port
+EXPOSE 8000
 
-# Expose port (if needed for web interface)
-# EXPOSE 8000
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8000/api/health || exit 1
 
 # Default command
-ENTRYPOINT ["python", "driftbuddy-cli.py"]
-CMD ["--help"]
+CMD ["uvicorn", "web.api_v3_simple:app", "--host", "0.0.0.0", "--port", "8000"]

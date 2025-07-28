@@ -98,23 +98,53 @@ class ScanService:
                 db.commit()
                 return kics_results
 
+            # Load detailed results from the output file
+            detailed_results = self._load_kics_results(kics_results.get("output_file"))
+            
             # Process findings
-            findings = await self._process_kics_findings(db, scan, kics_results)
+            findings = await self._process_kics_findings(db, scan, detailed_results)
 
-            # Update scan with results
+            # Update scan with enhanced results
             scan.status = ScanStatus.COMPLETED.value
-            scan.results = kics_results
+            scan.results = {
+                "kics_results": kics_results,
+                "detailed_results": detailed_results,
+                "findings_count": len(findings),
+                "severity_summary": detailed_results.get("severity_counters", {}),
+                "scan_summary": {
+                    "files_scanned": detailed_results.get("files_scanned", 0),
+                    "lines_scanned": detailed_results.get("lines_scanned", 0),
+                    "queries_total": detailed_results.get("queries_total", 0),
+                    "total_findings": detailed_results.get("total_counter", 0)
+                }
+            }
             scan.completed_at = datetime.utcnow()
             scan.updated_at = datetime.utcnow()
             db.commit()
 
-            return {"success": True, "scan_id": scan.id, "findings_count": len(findings), "results": kics_results}
+            return {
+                "success": True, 
+                "scan_id": scan.id, 
+                "findings_count": len(findings), 
+                "results": scan.results,
+                "severity_summary": detailed_results.get("severity_counters", {})
+            }
 
         except Exception as e:
             scan.status = ScanStatus.FAILED.value
             scan.results = {"error": str(e)}
             db.commit()
             raise HTTPException(status_code=500, detail=f"Scan failed: {str(e)}")
+
+    def _load_kics_results(self, output_file: str) -> Dict[str, Any]:
+        """Load detailed KICS results from the output file"""
+        try:
+            import json
+            with open(output_file, 'r') as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Warning: Could not load detailed KICS results: {str(e)}")
+            return {"queries": [], "severity_counters": {}}
 
     async def _process_kics_findings(self, db: Session, scan: Scan, kics_results: Dict[str, Any]) -> List[Finding]:
         """Process KICS findings and create Finding records"""
@@ -134,14 +164,14 @@ class ScanService:
                     description=query.get("description", "No description"),
                     file_path=file_info.get("file_name"),
                     line_number=file_info.get("line"),
-                    remediation=query.get("remediation", ""),
+                    remediation=self._generate_remediation(query, file_info),
                     created_at=datetime.utcnow(),
                 )
 
                 # Calculate risk score if possible
                 try:
                     risk_matrix = RiskMatrix()
-                    risk_score = risk_matrix.calculate_risk_score(impact=query.get("severity", "MEDIUM"), likelihood="MEDIUM")  # Default value
+                    risk_score = risk_matrix.calculate_risk_score(impact=query.get("severity", "MEDIUM"), likelihood="MEDIUM")
                     finding.risk_score = risk_score
                 except Exception:
                     finding.risk_score = None
@@ -151,6 +181,24 @@ class ScanService:
 
         db.commit()
         return findings
+
+    def _generate_remediation(self, query: Dict[str, Any], file_info: Dict[str, Any]) -> str:
+        """Generate remediation guidance based on KICS query and file info"""
+        remediation = query.get("description", "")
+        
+        # Add specific remediation based on query type
+        if "expected_value" in file_info and "actual_value" in file_info:
+            remediation += f"\n\nExpected: {file_info['expected_value']}"
+            remediation += f"\nActual: {file_info['actual_value']}"
+        
+        # Add platform-specific guidance
+        platform = query.get("platform", "")
+        if platform == "Terraform":
+            remediation += "\n\nTo fix this issue in Terraform, update your configuration to follow security best practices."
+        elif platform == "Dockerfile":
+            remediation += "\n\nTo fix this issue in Dockerfile, update your configuration to follow security best practices."
+        
+        return remediation
 
     async def get_scan(self, db: Session, scan_id: int, user: User) -> Scan:
         """Get scan by ID with permission check"""

@@ -1,13 +1,5 @@
 # 🔒 DriftBuddy - Infrastructure Security Scanner with Business Risk Assessment
 
-  DDDDDDD   RRRRRRRR   IIIIII  FFFFFFF  TTTTTTT   BBBBBBB   UUU   UUU  DDDDDDD   DDDDDDD   YYYYYYY
-  DDDDDDDD  RRRRRRRRR   III    FFFFFF   TTTTTTT   BBBBBBBB  UUU   UUU  DDDDDDDD  DDDDDDDD   YYYYY
-  DDD  DDD  RRR   RRR   III    FFF        TTT     BBB   BB  UUU   UUU  DDD  DDD  DDD  DDD    YYY
-  DDD  DDD  RRRRRRRRR   III    FFFFFF     TTT     BBBBBBBB  UUU   UUU  DDD  DDD  DDD  DDD    YYY
-  DDD  DDD  RRR RRR     III    FFFFFF     TTT     BBBBBBB   UUU   UUU  DDD  DDD  DDD  DDD    YYY
-  DDDDDDDD  RRR  RRR    III    FFF        TTT     BBB   BB  UUU   UUU  DDDDDDDD  DDDDDDDD    YYY
-  DDDDDDD   RRR   RRR  IIIIII  FFFF       TTT     BBBBBBBB   UUUUUUU   DDDDDDD   DDDDDDD     YYY
-
 **Enterprise-ready infrastructure security scanner with AI-powered explanations and comprehensive business risk assessment using Impact × Likelihood methodology.**
 
 ## 🚀 Features

@@ -72,14 +72,14 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         if payload is None:
             raise credentials_exception
 
-        user_id: int = payload.get("sub")
-        if user_id is None:
+        email: str = payload.get("sub")
+        if email is None:
             raise credentials_exception
 
     except JWTError:
         raise credentials_exception
 
-    user = db.query(User).filter(User.id == user_id).first()
+    user = db.query(User).filter(User.email == email).first()
     if user is None:
         raise credentials_exception
 

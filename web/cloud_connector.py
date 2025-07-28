@@ -93,7 +93,7 @@ class CloudConnector:
             # Update scan status
             scan.status = ScanStatus.RUNNING.value
             scan.scan_type = f"cloud_{provider}"
-            scan.metadata = {"provider": provider, "config": config, "started_at": datetime.utcnow().isoformat()}
+            scan.scan_metadata = {"provider": provider, "config": config, "started_at": datetime.utcnow().isoformat()}
             db.commit()
 
             # Run Steampipe scan

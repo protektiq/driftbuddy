@@ -222,7 +222,7 @@ class ReportingService:
                     "created_at": scan.created_at.isoformat(),
                     "updated_at": scan.updated_at.isoformat(),
                     "completed_at": scan.completed_at.isoformat() if scan.completed_at else None,
-                    "metadata": scan.metadata,
+                    "metadata": scan.scan_metadata,
                 },
                 "findings": [
                     {
@@ -418,7 +418,7 @@ class ReportingService:
                 "created_at": scan.created_at.isoformat(),
                 "updated_at": scan.updated_at.isoformat(),
                 "completed_at": scan.completed_at.isoformat() if scan.completed_at else None,
-                "metadata": scan.metadata,
+                "metadata": scan.scan_metadata,
                 "results": scan.results,
             },
             "findings": [

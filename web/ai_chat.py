@@ -198,7 +198,7 @@ class AIChatService:
                 "response": chat.response,
                 "scan_id": chat.scan_id,
                 "created_at": chat.created_at.isoformat(),
-                "metadata": chat.metadata,
+                "metadata": chat.chat_metadata,
             }
             for chat in chat_history
         ]

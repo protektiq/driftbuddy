@@ -775,24 +775,103 @@ Examples:
 
     # If test mode is requested, run the functionality test
     if args.test:
-        print("🔍 Testing DriftBuddy core functionality...")
+        print("🔍 Testing DriftBuddy - Complete Tool Suite")
+        print("=" * 50)
+        print("DriftBuddy consists of:")
+        print("  🔍 KICS - Infrastructure as Code security scanning")
+        print("  ☁️  Steampipe - Cloud infrastructure security scanning")
+        print("  🤖 ChatGPT - AI-powered explanations and business risk assessment")
+        print("  🔗 LangChain - Advanced AI capabilities with memory and chains")
+        print("=" * 50)
 
         # Test KICS installation
-        print("\n📋 Checking KICS installation...")
+        print("\n📋 Testing KICS (Infrastructure as Code Scanner)...")
         kics_available = check_kics_installation()
-        print(f"KICS available: {kics_available}")
+        print(f"✅ KICS available: {kics_available}")
 
         # Test Docker KICS
-        print("\n🐳 Checking Docker KICS...")
+        print("\n🐳 Testing Docker KICS (Alternative)...")
         docker_kics_available = check_docker_kics()
-        print(f"Docker KICS available: {docker_kics_available}")
+        print(f"✅ Docker KICS available: {docker_kics_available}")
 
         # Test Steampipe installation
-        print("\n🔧 Checking Steampipe installation...")
+        print("\n🔧 Testing Steampipe (Cloud Infrastructure Scanner)...")
         steampipe_available = check_steampipe_installation()
-        print(f"Steampipe available: {steampipe_available}")
+        print(f"✅ Steampipe available: {steampipe_available}")
 
-        print("\n✅ Core functionality test completed")
+        # Test ChatGPT/OpenAI integration
+        print("\n🤖 Testing ChatGPT/OpenAI Integration...")
+        try:
+            from .config import get_config
+            config = get_config()
+            openai_key = config.get("openai_api_key")
+            if openai_key and openai_key != "your-api-key-here":
+                print("✅ OpenAI API key configured")
+                print(f"✅ Model: {config.get('openai_model', 'o4-mini')}")
+                print(f"✅ Max tokens: {config.get('openai_max_tokens', 1200)}")
+            else:
+                print("⚠️  OpenAI API key not configured")
+                print("💡 Set OPENAI_API_KEY environment variable for AI features")
+        except Exception as e:
+            print(f"❌ OpenAI configuration error: {str(e)}")
+
+        # Test LangChain integration
+        print("\n🔗 Testing LangChain Integration...")
+        try:
+            langchain_modules = _import_langchain()
+            if langchain_modules[0] is not None:  # DriftBuddyLangChain
+                print("✅ LangChain integration available")
+                print("✅ Enhanced AI capabilities enabled")
+                print("✅ Memory and chain features available")
+            else:
+                print("⚠️  LangChain not available")
+                print("💡 Install: pip install langchain>=0.1.0 langchain-openai>=0.1.0 langchain-community>=0.1.0")
+        except Exception as e:
+            print(f"❌ LangChain integration error: {str(e)}")
+
+        # Test configuration
+        print("\n⚙️  Testing Configuration...")
+        try:
+            from .config import get_config
+            config = get_config()
+            print(f"✅ Configuration loaded successfully")
+            print(f"✅ Output directory: {config.get('output_dir', 'outputs/reports')}")
+            print(f"✅ AI explanations: {config.get('enable_ai_explanations', True)}")
+            print(f"✅ Business risk assessment: {config.get('enable_business_risk_assessment', True)}")
+        except Exception as e:
+            print(f"❌ Configuration error: {str(e)}")
+
+        # Test risk assessment
+        print("\n📊 Testing Risk Assessment Engine...")
+        try:
+            from .risk_assessment import RiskMatrix, ImpactLevel, LikelihoodLevel
+            test_impact = ImpactLevel.MODERATE
+            test_likelihood = LikelihoodLevel.LIKELY
+            risk_score = RiskMatrix.calculate_business_risk_score(test_impact, test_likelihood)
+            risk_level = RiskMatrix.determine_business_risk_level(risk_score)
+            print(f"✅ Risk assessment engine working")
+            print(f"✅ Sample calculation: {test_impact.value[0]} × {test_likelihood.value[0]} = {risk_score}")
+            print(f"✅ Risk level: {risk_level.value[1]} ({risk_level.value[0]})")
+        except Exception as e:
+            print(f"❌ Risk assessment error: {str(e)}")
+
+        # Summary
+        print("\n" + "=" * 50)
+        print("🎯 DriftBuddy Tool Suite Test Results:")
+        print(f"  🔍 KICS: {'✅ Available' if kics_available else '❌ Not Available'}")
+        print(f"  ☁️  Steampipe: {'✅ Available' if steampipe_available else '❌ Not Available'}")
+        print(f"  🤖 ChatGPT: {'✅ Configured' if openai_key and openai_key != 'your-api-key-here' else '⚠️  Not Configured'}")
+        print(f"  🔗 LangChain: {'✅ Available' if langchain_modules[0] is not None else '⚠️  Not Available'}")
+        print("=" * 50)
+        
+        if kics_available and steampipe_available:
+            print("🎉 All core tools are available! DriftBuddy is ready for comprehensive security scanning.")
+        elif kics_available:
+            print("✅ KICS is available. DriftBuddy can perform infrastructure security scanning.")
+        else:
+            print("⚠️  Core scanning tools not available. Please install KICS for basic functionality.")
+        
+        print("\n✅ Complete DriftBuddy tool suite test completed")
         return
 
     # Validate scan path

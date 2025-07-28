@@ -157,7 +157,7 @@ def batch_generate_explanations(client: OpenAI, queries: List[Dict], max_workers
         try:
             # Single comprehensive prompt for the entire query
             response = client.chat.completions.create(
-                model="gpt-4o",
+                model="o4-mini",
                 messages=[
                     {
                         "role": "system",

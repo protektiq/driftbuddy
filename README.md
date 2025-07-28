@@ -1,5 +1,26 @@
 # 🔒 DriftBuddy - Infrastructure Security Scanner with Business Risk Assessment
 
+## What is Infrastructure Drift and Why Does It Matter?
+
+**Infrastructure drift** happens when your actual cloud infrastructure differs from what's defined in your code. This creates security risks, compliance issues, and operational chaos.
+
+### The Problem
+- **Manual changes**: Emergency fixes made outside of code
+- **Console access**: Changes made directly in cloud consoles
+- **Multi-team coordination**: Different teams using different tools
+- **Configuration drift**: Cloud providers automatically adjusting resources
+- **Shadow IT**: Resources created without going through proper processes
+
+### The Impact
+- **Security risks**: Manual changes bypass security controls
+- **Cost overruns**: Unmanaged resources accumulate costs
+- **Deployment failures**: IaC deployments fail due to state mismatches
+- **Compliance violations**: Broken audit trails from manual changes
+- **Operational chaos**: Teams can't reliably reproduce environments
+
+### The Solution
+**DriftBuddy** detects infrastructure drift between your code and actual cloud resources, providing business context to help teams decide whether to remediate or accept changes.
+
 **Enterprise-ready infrastructure security scanner with AI-powered explanations and comprehensive business risk assessment using Impact × Likelihood methodology.**
 
 ## 🚀 Features
@@ -36,6 +57,15 @@
 - **Actionable Recommendations**: Prioritized remediation steps
 - **Financial Impact Dashboard**: Total cost analysis and breakdown
 - **Embedded AI Analysis**: AI explanations and remediation code in main report
+
+### 🌐 **Web Interface**
+- **Modern Web UI**: React-based frontend with real-time updates
+- **Advanced RBAC**: Role-based access control with custom permissions
+- **Compliance Reporting**: SOC2, PCI, HIPAA framework support
+- **External Integrations**: Jira, Slack, Teams connectivity
+- **Cloud Connector**: AWS, Azure, GCP integration with Steampipe
+- **AI Chat Interface**: Interactive AI-powered security analysis
+- **Real-time WebSockets**: Live scan progress and notifications
 
 ## 🎯 **Business Value**
 
@@ -93,42 +123,50 @@ make setup-api-key
 
 ## 🚀 Usage
 
-### **Basic Scan**
+### **Command Line Interface**
 ```bash
-# Scan infrastructure code
-python driftbuddy.py --scan-path ./terraform
+# Basic scan
+python driftbuddy-cli.py --scan-path ./terraform
 
 # With AI explanations and business risk assessment
-python driftbuddy.py --scan-path ./terraform --enable-ai
-```
+python driftbuddy-cli.py --scan-path ./terraform --enable-ai
 
-### **Advanced Usage**
-```bash
 # Generate HTML report with business risk assessment
-python driftbuddy.py --scan-path ./k8s --output-format html --enable-ai
+python driftbuddy-cli.py --scan-path ./k8s --output-format html --enable-ai
 
 # Generate JSON report for integration
-python driftbuddy.py --scan-path ./docker --output-format json
+python driftbuddy-cli.py --scan-path ./docker --output-format json
 
 # Custom output directory
-python driftbuddy.py --scan-path ./cloudformation --reports-dir ./reports
+python driftbuddy-cli.py --scan-path ./cloudformation --reports-dir ./reports
 
 # Run all available scans (KICS + Steampipe if available)
-python driftbuddy.py --scan-path . --all --enable-ai
+python driftbuddy-cli.py --scan-path . --all --enable-ai
 
 # LangChain-enhanced analysis
-python driftbuddy.py --scan-path . --enable-langchain --enable-ai
+python driftbuddy-cli.py --scan-path . --enable-langchain --enable-ai
 
 # Comprehensive analysis with all features
-python driftbuddy.py --scan-path . --all --enable-langchain --enable-ai
+python driftbuddy-cli.py --scan-path . --all --enable-langchain --enable-ai
 
 # Test functionality only
-python driftbuddy.py --test
+python driftbuddy-cli.py --test
+```
+
+### **Web Interface**
+```bash
+# Start the web interface
+python run_web_v3.py
+
+# Access the application
+# Web Interface: http://localhost:8000
+# API Documentation: http://localhost:8000/docs
+# Default Admin: admin@driftbuddy.com / admin123
 ```
 
 ### **Command Line Options**
 ```bash
-python driftbuddy.py [OPTIONS]
+python driftbuddy-cli.py [OPTIONS]
 
 Options:
   --scan-path PATH        Path to scan for infrastructure files (default: current directory)
@@ -151,16 +189,6 @@ Options:
 export AI_MAX_CONCURRENT_REQUESTS=3
 export AI_REQUEST_TIMEOUT=60
 export AI_BATCH_SIZE=5
-```
-
-### **Docker Usage**
-```bash
-# Run with Docker
-docker run -v $(pwd):/workspace driftbuddy/driftbuddy \
-  --scan-path /workspace/terraform --enable-ai
-
-# With Docker Compose
-docker-compose up
 ```
 
 ## 📊 **Business Risk Assessment**
@@ -231,13 +259,13 @@ DriftBuddy uses a scientific **Impact × Likelihood** methodology:
 🔍 Starting DriftBuddy local scan of: /path/to/terraform
 🚀 Running DriftBuddy locally...
 
-   ######                        ######                             
-#     # #####  # ###### ##### #     # #    # #####  #####  #   # 
-#     # #    # # #        #   #     # #    # #    # #    #  # #  
-#     # #    # # #####    #   ######  #    # #    # #    #   #   
-#     # #####  # #        #   #     # #    # #    # #    #   #   
-#     # #   #  # #        #   #     # #    # #    # #    #   #   
-######  #    # # #        #   ######   ####  #####  #####    #  
+  DDDDDDD   RRRRRRRR   IIIIII  FFFFFFF  TTTTTTT   BBBBBBB   UUU   UUU  DDDDDDD   DDDDDDD   YYYYYYY
+  DDDDDDDD  RRRRRRRRR   III    FFFFFF   TTTTTTT   BBBBBBBB  UUU   UUU  DDDDDDDD  DDDDDDDD   YYYYY
+  DDD  DDD  RRR   RRR   III    FFF        TTT     BBB   BB  UUU   UUU  DDD  DDD  DDD  DDD    YYY
+  DDD  DDD  RRRRRRRRR   III    FFFFFF     TTT     BBBBBBBB  UUU   UUU  DDD  DDD  DDD  DDD    YYY
+  DDD  DDD  RRR RRR     III    FFFFFF     TTT     BBBBBBB   UUU   UUU  DDD  DDD  DDD  DDD    YYY
+  DDDDDDDD  RRR  RRR    III    FFF        TTT     BBB   BB  UUU   UUU  DDDDDDDD  DDDDDDDD    YYY
+  DDDDDDD   RRR   RRR  IIIIII  FFFF       TTT     BBBBBBBB   UUUUUUU   DDDDDDD   DDDDDDD     YYY    
     🔍 Infrastructure Security Analysis Tool
     🛡️  Keeping Your Infrastructure as Code Secure
 
@@ -277,7 +305,7 @@ Executing queries: [---------------------------------------------------] 100.00%
 ```bash
 # OpenAI Configuration
 OPENAI_API_KEY=your-api-key
-OPENAI_MODEL=gpt-4o
+OPENAI_MODEL=o4-mini
 OPENAI_MAX_TOKENS=1200
 
 # AI Performance Settings
@@ -303,7 +331,7 @@ Create a `.env` file in your project root:
 ```env
 # OpenAI Settings
 OPENAI_API_KEY=your-api-key-here
-OPENAI_MODEL=gpt-4o
+OPENAI_MODEL=o4-mini
 OPENAI_MAX_TOKENS=1200
 
 # AI Performance Settings
@@ -331,22 +359,31 @@ driftbuddy/
 │   ├── core.py              # Main application logic with CLI interface
 │   ├── config.py            # Configuration management
 │   ├── risk_assessment.py   # Business risk assessment (Impact × Likelihood)
-│   └── exceptions.py        # Error handling
-├── src/agent/
-│   └── explainer.py         # AI explanation agent with remediation code
-├── scripts/
+│   ├── exceptions.py        # Error handling
+│   ├── kics_integration.py  # KICS scanning integration
+│   ├── steampipe_integration.py  # Cloud scanning integration
+│   ├── langchain_integration.py  # AI integration
+│   └── agent/               # AI agents and explainers
+├── web/                     # Web interface
+│   ├── api_v3_simple.py     # FastAPI application
+│   ├── models.py            # Database models
+│   ├── auth.py              # Authentication
+│   ├── services.py          # Business logic
+│   └── frontend/            # React frontend
+├── scripts/                 # Utility scripts
 │   ├── setup_api_key.py     # API key setup
 │   ├── security_scan.py     # Security checks
 │   └── test_performance.py  # Performance testing
-├── outputs/
-│   ├── reports/             # Generated reports
+├── outputs/                 # Generated reports
+│   ├── reports/             # Scan reports
 │   └── analysis/            # Analysis results
-├── test_data/
-│   └── iac_example/         # Test infrastructure
+├── test_data/               # Test infrastructure
 ├── docs/                    # Documentation
-│   └── PERFORMANCE_OPTIMIZATION.md
 ├── tests/                   # Test suite
-└── examples/                # Usage examples
+├── examples/                # Usage examples
+├── assets/                  # KICS queries and resources
+├── static/                  # Static web assets
+└── uploads/                 # File uploads for web interface
 ```
 
 ## 🧪 **Testing**
@@ -369,13 +406,10 @@ python scripts/test_performance.py
 ### **Test Infrastructure**
 ```bash
 # Test with sample infrastructure
-python driftbuddy.py --scan-path ./test_data/iac_example --enable-ai
-
-# Test risk calculation
-python demo_risk_calculation.py
+python driftbuddy-cli.py --scan-path ./test_data/iac_example --enable-ai
 
 # Test functionality
-python driftbuddy.py --test
+python driftbuddy-cli.py --test
 ```
 
 ## 🔗 **LangChain Integration**
@@ -403,12 +437,7 @@ python driftbuddy-cli.py --scan-path . --enable-langchain --knowledge-base
 ```bash
 # Install LangChain dependencies
 pip install langchain>=0.1.0 langchain-openai>=0.1.0 langchain-community>=0.1.0
-
-# Test integration
-python test_langchain_integration.py
 ```
-
-For detailed LangChain documentation, see [LANGCHAIN_INTEGRATION.md](LANGCHAIN_INTEGRATION.md).
 
 ## 🚀 **Performance Optimizations**
 
@@ -482,6 +511,10 @@ See [CHANGELOG.md](CHANGELOG.md) for a complete list of changes and version hist
 - ✅ **Deterministic AI Output**: Consistent responses with temperature=0
 - ✅ **Embedded AI Analysis**: AI explanations and code examples in main report
 - ✅ **Error Handling**: Robust type checking and data validation
+- ✅ **Web Interface**: Modern React-based UI with advanced RBAC
+- ✅ **Compliance Reporting**: SOC2, PCI, HIPAA framework support
+- ✅ **External Integrations**: Jira, Slack, Teams connectivity
+- ✅ **Cloud Connector**: AWS, Azure, GCP integration with Steampipe
 
 ---
 

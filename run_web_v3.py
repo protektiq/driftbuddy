@@ -46,7 +46,7 @@ def main():
     os.environ.setdefault("OAUTH_ENABLED", "false")
 
     # Run the FastAPI application
-    uvicorn.run("web.api_v3:app", host="0.0.0.0", port=8000, reload=True, log_level="info")
+    uvicorn.run("web.api_v3_simple:app", host="0.0.0.0", port=8000, reload=True, log_level="info")
 
 
 if __name__ == "__main__":

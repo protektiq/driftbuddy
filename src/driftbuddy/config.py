@@ -30,7 +30,7 @@ class Settings(BaseSettings):
 
     # OpenAI configuration with fallback support
     openai_api_key: Optional[str] = Field(default=None, env="OPENAI_API_KEY")
-    openai_model: str = Field(default="gpt-3.5-turbo", env="OPENAI_MODEL")
+    openai_model: str = Field(default="o4-mini", env="OPENAI_MODEL")
     openai_max_tokens: int = Field(default=2000, env="OPENAI_MAX_TOKENS")
 
     # Fallback API key for demo purposes (should be rotated regularly)

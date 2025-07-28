@@ -403,7 +403,7 @@ async def send_chat_message(
     
     return ChatResponse(
         response=ai_response,
-        metadata={"model": "gpt-3.5-turbo", "tokens": 150},
+                    metadata={"model": "o4-mini", "tokens": 150},
         created_at=datetime.utcnow()
     )
 

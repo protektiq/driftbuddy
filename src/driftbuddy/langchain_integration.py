@@ -115,7 +115,7 @@ class DriftBuddyLangChain:
         if not api_key:
             raise DriftBuddyError("OpenAI API key not configured")
 
-        return ChatOpenAI(model="gpt-4o", temperature=0, api_key=api_key, max_tokens=2000)
+        return ChatOpenAI(model="o4-mini", temperature=0, api_key=api_key, max_tokens=2000)
 
     def create_analysis_chain(self):
         """Create a chain for security analysis with memory"""

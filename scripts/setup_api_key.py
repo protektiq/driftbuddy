@@ -67,7 +67,7 @@ OPENAI_API_KEY={api_key}
 # AI Settings
 ENABLE_AI_EXPLANATIONS=true
 USE_DEMO_KEY_FALLBACK=true
-OPENAI_MODEL=gpt-3.5-turbo
+OPENAI_MODEL=o4-mini
 OPENAI_MAX_TOKENS=2000
 
 # Output Configuration

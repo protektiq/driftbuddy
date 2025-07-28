@@ -112,7 +112,7 @@ LOG_FORMAT=json
 
 # OpenAI configuration
 OPENAI_API_KEY=your_openai_api_key
-OPENAI_MODEL=gpt-3.5-turbo
+OPENAI_MODEL=o4-mini
 OPENAI_MAX_TOKENS=2000
 
 # KICS configuration
